@@ -23,13 +23,13 @@ class PackageController extends Controller
 
         return Inertia::render('Packages/Index', [
             'repository' => $repository,
-            'packages'   => $packages->map(fn ($pkg) => [
-                'id'             => $pkg->id,
-                'name'           => $pkg->name,
-                'full_name'      => $pkg->fullName(),
-                'description'    => $pkg->description,
+            'packages' => $packages->map(fn ($pkg) => [
+                'id' => $pkg->id,
+                'name' => $pkg->name,
+                'full_name' => $pkg->fullName(),
+                'description' => $pkg->description,
                 'versions_count' => $pkg->versions_count,
-                'created_at'     => $pkg->created_at,
+                'created_at' => $pkg->created_at,
             ]),
         ]);
     }
@@ -48,7 +48,7 @@ class PackageController extends Controller
         $this->authorize('manageVersions', $repository);
 
         $package = $repository->packages()->create([
-            'name'        => $request->name,
+            'name' => $request->name,
             'description' => $request->description,
         ]);
 
@@ -64,18 +64,18 @@ class PackageController extends Controller
 
         return Inertia::render('Packages/Show', [
             'repository' => $repository,
-            'package'    => [
-                'id'          => $package->id,
-                'name'        => $package->name,
-                'full_name'   => $package->fullName(),
+            'package' => [
+                'id' => $package->id,
+                'name' => $package->name,
+                'full_name' => $package->fullName(),
                 'description' => $package->description,
-                'versions'    => $package->sortedVersions()->map(fn ($v) => [
-                    'id'          => $v->id,
-                    'version'     => $v->version,
-                    'type'        => $v->type,
-                    'disk'        => $v->disk,
+                'versions' => $package->sortedVersions()->map(fn ($v) => [
+                    'id' => $v->id,
+                    'version' => $v->version,
+                    'type' => $v->type,
+                    'disk' => $v->disk,
                     'description' => $v->description,
-                    'created_at'  => $v->created_at,
+                    'created_at' => $v->created_at,
                 ]),
                 'can' => [
                     'manage' => auth()->check() && auth()->user()->hasAccessToRepository($repository),

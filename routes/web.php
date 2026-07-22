@@ -1,13 +1,13 @@
 <?php
 
 use App\Http\Controllers\ApiTokenController;
+use App\Http\Controllers\ComposerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\PackageController;
 use App\Http\Controllers\PackageVersionController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\RepositoryUserController;
-use App\Http\Controllers\ComposerController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to dashboard
