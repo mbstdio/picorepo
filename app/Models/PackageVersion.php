@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
+
+class PackageVersion extends Model
+{
+    protected $fillable = [
+        'package_id',
+        'version',
+        'type',
+        'disk',
+        'zip_path',
+        'description',
+        'extra',
+    ];
+
+    protected $casts = [
+        'extra' => 'array',
+    ];
+
+    public function package(): BelongsTo
+    {
+        return $this->belongsTo(Package::class);
+    }
+
+    public function downloadUrl(): string
+    {
+        return route('versions.download', $this->id);
+    }
+
+    public function getZipUrl(): ?string
+    {
+        if (! $this->zip_path) {
+            return null;
+        }
+
+        return Storage::disk($this->disk)->temporaryUrl(
+            $this->zip_path,
+            now()->addMinutes(5)
+        );
+    }
+
+    public function toComposerArray(): array
+    {
+        $data = [
+            'name'    => $this->package->fullName(),
+            'version' => $this->version,
+            'type'    => $this->type ?? 'library',
+            'dist'    => [
+                'url'  => $this->downloadUrl(),
+                'type' => 'zip',
+            ],
+        ];
+
+        if ($this->description) {
+            $data['description'] = $this->description;
+        }
+
+        if ($this->extra) {
+            $data = array_merge($data, $this->extra);
+        }
+
+        return $data;
+    }
+}

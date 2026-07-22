@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StorePackageRequest;
+use App\Models\Package;
+use App\Models\Repository;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PackageController extends Controller
+{
+    public function index(Repository $repository): Response
+    {
+        $this->authorize('view', $repository);
+
+        $packages = $repository->packages()
+            ->withCount('versions')
+            ->latest()
+            ->get();
+
+        return Inertia::render('Packages/Index', [
+            'repository' => $repository,
+            'packages'   => $packages->map(fn ($pkg) => [
+                'id'             => $pkg->id,
+                'name'           => $pkg->name,
+                'full_name'      => $pkg->fullName(),
+                'description'    => $pkg->description,
+                'versions_count' => $pkg->versions_count,
+                'created_at'     => $pkg->created_at,
+            ]),
+        ]);
+    }
+
+    public function create(Repository $repository): Response
+    {
+        $this->authorize('manageVersions', $repository);
+
+        return Inertia::render('Packages/Create', [
+            'repository' => $repository,
+        ]);
+    }
+
+    public function store(StorePackageRequest $request, Repository $repository): RedirectResponse
+    {
+        $this->authorize('manageVersions', $repository);
+
+        $package = $repository->packages()->create([
+            'name'        => $request->name,
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('repositories.packages.versions.create', [$repository, $package])
+            ->with('success', 'Package created. Now add the first version.');
+    }
+
+    public function show(Repository $repository, Package $package): Response
+    {
+        $this->authorize('view', $repository);
+
+        $package->load('versions');
+
+        return Inertia::render('Packages/Show', [
+            'repository' => $repository,
+            'package'    => [
+                'id'          => $package->id,
+                'name'        => $package->name,
+                'full_name'   => $package->fullName(),
+                'description' => $package->description,
+                'versions'    => $package->sortedVersions()->map(fn ($v) => [
+                    'id'          => $v->id,
+                    'version'     => $v->version,
+                    'type'        => $v->type,
+                    'disk'        => $v->disk,
+                    'description' => $v->description,
+                    'created_at'  => $v->created_at,
+                ]),
+                'can' => [
+                    'manage' => auth()->check() && auth()->user()->hasAccessToRepository($repository),
+                    'delete' => auth()->check() && auth()->user()->ownsRepository($repository),
+                ],
+            ],
+        ]);
+    }
+
+    public function destroy(Repository $repository, Package $package): RedirectResponse
+    {
+        $this->authorize('delete', $package);
+
+        $package->delete();
+
+        return redirect()->route('repositories.show', $repository)
+            ->with('success', 'Package deleted.');
+    }
+}

@@ -1,0 +1,125 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\PackageVersion;
+use App\Models\Repository;
+use Illuminate\Http\JsonResponse;
+
+class ComposerController extends Controller
+{
+    /**
+     * packages.json endpoint for a given repository.
+     * Composer uses this as the entry point.
+     */
+    public function metadata(string $repositorySlug): JsonResponse
+    {
+        $repository = Repository::where('slug', $repositorySlug)->firstOrFail();
+
+        $this->authorizeComposerAccess($repository);
+
+        $packageNames = $repository->packages()
+            ->with('versions')
+            ->get()
+            ->filter(fn($p) => $p->versions->isNotEmpty())
+            ->map(fn($p) => $p->fullName())
+            ->values()
+            ->all();
+
+        return response()->json([
+            'packages'           => new \stdClass,
+            'metadata-url'       => '/composer/' . $repositorySlug . '/p/%24package%24.json',
+            'available-packages' => $packageNames,
+            'info'               => "Add to composer.json repositories: " . json_encode($repository->composerConfig()),
+        ]);
+    }
+
+    /**
+     * Fallback endpoint when Composer v2 probes the literal $package$ URL.
+     * Returns all packages in the repository.
+     */
+    public function allPackages(string $repositorySlug): JsonResponse
+    {
+        $repository = Repository::where('slug', $repositorySlug)->firstOrFail();
+
+        $this->authorizeComposerAccess($repository);
+
+        $packages = [];
+        foreach ($repository->packages()->with('versions')->get() as $package) {
+            $fullName = $package->fullName();
+            $versions = [];
+            foreach ($package->sortedVersions() as $version) {
+                $versions[$version->version] = $version->toComposerArray();
+            }
+            if (!empty($versions)) {
+                $packages[$fullName] = $versions;
+            }
+        }
+
+        return response()->json([
+            'packages' => $packages,
+            'minified' => false,
+        ]);
+    }
+
+    /**
+     * Package-specific metadata: /composer/{repo}/p/{vendor}~{package}.json
+     * Composer v2 replaces %24package%24 → vendor~package (/ becomes ~)
+     */
+    public function packageMeta(string $repositorySlug, string $packageName): JsonResponse
+    {
+        $repository = Repository::where('slug', $repositorySlug)->firstOrFail();
+
+        $this->authorizeComposerAccess($repository);
+
+        // Composer v2 encodes vendor/package as vendor~package in the URL
+        $fullName = str_replace('~', '/', $packageName);
+
+        if (!str_contains($fullName, '/')) {
+            abort(404);
+        }
+
+        [, $name] = explode('/', $fullName, 2);
+
+        $package = $repository->packages()
+            ->where('name', $name)
+            ->with('versions')
+            ->firstOrFail();
+
+        $versions = [];
+        foreach ($package->sortedVersions() as $version) {
+            $versions[$version->version] = $version->toComposerArray();
+        }
+
+        return response()->json([
+            'packages' => [
+                $fullName => $versions,
+            ],
+            'minified' => false,
+        ]);
+    }
+
+    protected function authorizeComposerAccess(Repository $repository): void
+    {
+        if ($repository->isPublic()) {
+            return;
+        }
+
+        // Try token auth for private repos
+        $token = request()->bearerToken()
+            ?? request()->header('X-API-Token')
+            ?? request()->query('api_token');
+
+        if (! $token) {
+            abort(401, 'Authentication required for private repositories.');
+        }
+
+        $user = \App\Models\User::whereHas('tokens', function ($q) use ($token) {
+            $q->where('token', hash('sha256', $token));
+        })->first();
+
+        if (! $user || ! $user->hasAccessToRepository($repository)) {
+            abort(403, 'Access denied to this repository.');
+        }
+    }
+}
