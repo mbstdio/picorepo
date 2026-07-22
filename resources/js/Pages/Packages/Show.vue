@@ -94,7 +94,7 @@
                                 <TableHead>Storage</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead>Added</TableHead>
-                                <TableHead class="w-16"></TableHead>
+                                <TableHead class="w-32"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -126,6 +126,12 @@
                                     >{{ formatDate(v.created_at) }}</TableCell
                                 >
                                 <TableCell>
+                                    <Link
+                                        v-if="package_.can.manage"
+                                        :href="route('repositories.packages.versions.edit', [repository.slug, package_.id, v.id])"
+                                    >
+                                        <Button variant="ghost" size="sm">Edit</Button>
+                                    </Link>
                                     <Button
                                         v-if="package_.can.manage"
                                         variant="ghost"

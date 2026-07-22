@@ -23,7 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('repositories', RepositoryController::class);
 
     // Packages nested in repositories
-    Route::prefix('repositories/{repository}/packages')->name('repositories.packages.')->group(function () {
+    Route::scopeBindings()->prefix('repositories/{repository}/packages')->name('repositories.packages.')->group(function () {
         Route::get('/', [PackageController::class, 'index'])->name('index');
         Route::get('/create', [PackageController::class, 'create'])->name('create');
         Route::post('/', [PackageController::class, 'store'])->name('store');
@@ -36,6 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('/{package}/versions')->name('versions.')->group(function () {
             Route::get('/create', [PackageVersionController::class, 'create'])->name('create');
             Route::post('/', [PackageVersionController::class, 'store'])->name('store');
+            Route::get('/{version}/edit', [PackageVersionController::class, 'edit'])->name('edit');
+            Route::put('/{version}', [PackageVersionController::class, 'update'])->name('update');
             Route::delete('/{version}', [PackageVersionController::class, 'destroy'])->name('destroy');
         });
     });
