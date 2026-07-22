@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePackageRequest;
+use App\Http\Requests\UpdatePackageRequest;
 use App\Models\Package;
 use App\Models\Repository;
 use Illuminate\Http\RedirectResponse;
@@ -82,6 +83,29 @@ class PackageController extends Controller
                 ],
             ],
         ]);
+    }
+
+    public function edit(Repository $repository, Package $package): Response
+    {
+        $this->authorize('update', $package);
+
+        return Inertia::render('Packages/Edit', [
+            'repository' => $repository,
+            'package' => $package,
+        ]);
+    }
+
+    public function update(UpdatePackageRequest $request, Repository $repository, Package $package): RedirectResponse
+    {
+        $this->authorize('update', $package);
+
+        $package->update([
+            'name' => $request->name,
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('repositories.packages.show', [$repository, $package])
+            ->with('success', 'Package updated successfully.');
     }
 
     public function destroy(Repository $repository, Package $package): RedirectResponse

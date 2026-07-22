@@ -27,7 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [PackageController::class, 'index'])->name('index');
         Route::get('/create', [PackageController::class, 'create'])->name('create');
         Route::post('/', [PackageController::class, 'store'])->name('store');
+        Route::get('/{package}/edit', [PackageController::class, 'edit'])->name('edit');
         Route::get('/{package}', [PackageController::class, 'show'])->name('show');
+        Route::put('/{package}', [PackageController::class, 'update'])->name('update');
         Route::delete('/{package}', [PackageController::class, 'destroy'])->name('destroy');
 
         // Versions nested in packages

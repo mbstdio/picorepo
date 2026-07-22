@@ -12,6 +12,9 @@
           <p v-if="package_.description" class="text-muted-foreground mt-1">{{ package_.description }}</p>
         </div>
         <div class="flex gap-2">
+          <Link v-if="package_.can.manage" :href="route('repositories.packages.edit', [repository.slug, package_.id])">
+            <Button variant="outline">Edit Package</Button>
+          </Link>
           <Link v-if="package_.can.manage" :href="route('repositories.packages.versions.create', [repository.slug, package_.id])">
             <Button>Add Version</Button>
           </Link>
