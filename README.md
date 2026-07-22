@@ -1,58 +1,216 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Pico Repo
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Pico Repo is a self-hosted Composer repository manager for publishing and distributing ZIP-based PHP packages. It provides a web interface for managing repositories, packages, versions, collaborators, and access tokens.
 
-## About Laravel
+## Contents
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- [Features](#features)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Using a Repository](#using-a-repository)
+- [Development](#development)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [Security](#security)
+- [License](#license)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Public and private repositories**
 
-## Learning Laravel
+  Create Composer repositories that are publicly available or restricted to authorized users.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Package and version management**
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+  Publish ZIP archives for versioned packages and provide Composer-compatible metadata for each release.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Composer v2 support**
 
-## Agentic Development
+  Pico Repo exposes `packages.json` and per-package metadata endpoints expected by Composer v2.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- **Repository access control**
+
+  Assign owner or collaborator roles to users and create API tokens for private repository access.
+
+- **Flexible archive storage**
+
+  Store archives locally by default, or use S3 after installing and configuring its Flysystem adapter.
+
+## Installation
+
+Before installing Pico Repo, make sure PHP 8.3 or later, Composer 2, Node.js 20.19+ or 22.12+, npm, and Git are installed on your machine. PHP must include the PDO SQLite extension, along with Laravel's required extensions: `ctype`, `curl`, `dom`, `fileinfo`, `mbstring`, `openssl`, `pdo`, `tokenizer`, and `xml`.
+
+Clone the repository and install its dependencies:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <REPOSITORY_URL> pico-repo
+cd pico-repo
+composer install
+npm ci
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Create the environment file and the SQLite database:
+
+```bash
+cp .env.example .env
+touch database/database.sqlite
+```
+
+On PowerShell, use:
+
+```powershell
+Copy-Item .env.example .env
+New-Item -ItemType File database/database.sqlite
+```
+
+Generate the application key and run the database migrations:
+
+```bash
+php artisan key:generate
+php artisan migrate
+```
+
+Start the local development environment:
+
+```bash
+composer run dev
+```
+
+This starts the Laravel server, Vite, the queue worker, and Laravel Pail. Visit `http://127.0.0.1:8000/register` to create the first account.
+
+## Configuration
+
+Pico Repo is configured through the `.env` file. Copy `.env.example` instead of committing environment-specific settings or credentials to source control.
+
+### Application URL
+
+Set `APP_URL` to the public URL of your Pico Repo instance. It is used to generate archive download URLs and must be reachable by Composer clients.
+
+```dotenv
+APP_URL=https://packages.example.com
+```
+
+Use HTTPS in production.
+
+### Database
+
+SQLite is the default database driver:
+
+```dotenv
+DB_CONNECTION=sqlite
+DB_DATABASE=/absolute/path/to/database.sqlite
+```
+
+Pico Repo can use another Laravel-supported database driver. Update the relevant `DB_*` values in `.env` and run `php artisan migrate` after changing the configuration.
+
+### Archive Storage
+
+Package archives are stored on the `local` disk by default. They are kept under `storage/app/private` and are delivered through the application so private repository access rules are enforced.
+
+To store archives on S3, install the adapter:
+
+```bash
+composer require league/flysystem-aws-s3-v3 "^3.0"
+```
+
+Then configure the S3 credentials in `.env`:
+
+```dotenv
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+```
+
+### Mail
+
+Configure `MAIL_*` values to deliver password reset and other application emails. The default local configuration writes email messages to the application logs.
+
+## Using a Repository
+
+Create a repository, package, and package version with its ZIP archive from the Pico Repo interface. The repository page displays its Composer endpoint.
+
+For a repository with the `<slug>` slug, add the endpoint to a consuming project:
+
+```bash
+composer config repositories.pico-repo composer https://packages.example.com/composer/<slug>
+composer require <vendor>/<package>
+```
+
+For private repositories, create a token from the profile of an authorized user, then configure Composer to send it as a Bearer token:
+
+```bash
+composer config --global --auth bearer.packages.example.com <token>
+```
+
+Use the hostname only in the Bearer configuration: do not include a protocol or path.
+
+## Development
+
+`composer run dev` starts all local services together. To run them separately:
+
+```bash
+php artisan serve
+npm run dev
+php artisan queue:listen
+php artisan pail
+```
+
+Vite provides frontend hot module replacement while `npm run dev` is running. Build production assets with:
+
+```bash
+npm run build
+```
+
+Run the test suite with:
+
+```bash
+composer test
+```
+
+Tests use an in-memory SQLite database and do not modify the local development database.
+
+Check or apply PHP formatting with:
+
+```bash
+vendor/bin/pint --test
+vendor/bin/pint
+```
+
+## Deployment
+
+Configure a production environment with `APP_ENV=production`, `APP_DEBUG=false`, a unique `APP_KEY`, a persistent database, and durable archive storage. Configure the web server to use the project's `public` directory as its document root.
+
+Deploy the application with at least the following commands:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+```
+
+When `QUEUE_CONNECTION` is not `sync`, run a supervised queue worker. The web process must be able to read locally stored archives.
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Contributions are welcome. Open an issue to report a bug or discuss a proposed enhancement before submitting a pull request.
 
-## Code of Conduct
+Before opening a pull request, add or update the relevant tests and run:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+composer test
+vendor/bin/pint --test
+```
 
-## Security Vulnerabilities
+Keep pull requests focused and describe the problem, the implementation, and the validation performed.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Security
+
+Do not disclose security vulnerabilities in a public issue. Use the repository's private vulnerability reporting mechanism, if enabled, or contact the project maintainers directly.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Pico Repo is open-sourced software licensed under the [MIT License](https://opensource.org/licenses/MIT).
