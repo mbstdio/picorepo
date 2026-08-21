@@ -40,6 +40,9 @@
             <DropdownMenuContent align="end" class="w-48">
               <DropdownMenuLabel>{{ $page.props.auth.user.email }}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem @click="router.visit(route('profile.edit'))">
+                Profile
+              </DropdownMenuItem>
               <DropdownMenuItem @click="router.visit(route('api-tokens.index'))">
                 API Tokens
               </DropdownMenuItem>

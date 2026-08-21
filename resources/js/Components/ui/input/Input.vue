@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 import { useVModel } from "@vueuse/core";
 import { cn } from "@/lib/utils";
 
@@ -18,10 +19,17 @@ const modelValue = useVModel(props, "modelValue", emits, {
   passive: true,
   defaultValue: props.defaultValue,
 });
+
+const input = ref(null);
+
+defineExpose({
+  focus: () => input.value?.focus(),
+});
 </script>
 
 <template>
   <input
+    ref="input"
     v-model="modelValue"
     data-slot="input"
     :class="

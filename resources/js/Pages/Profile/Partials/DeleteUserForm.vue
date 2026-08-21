@@ -1,108 +1,76 @@
-<script setup>
-import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { useForm } from '@inertiajs/vue3';
-import { nextTick, ref } from 'vue';
-
-const confirmingUserDeletion = ref(false);
-const passwordInput = ref(null);
-
-const form = useForm({
-    password: '',
-});
-
-const confirmUserDeletion = () => {
-    confirmingUserDeletion.value = true;
-
-    nextTick(() => passwordInput.value.focus());
-};
-
-const deleteUser = () => {
-    form.delete(route('profile.destroy'), {
-        preserveScroll: true,
-        onSuccess: () => closeModal(),
-        onError: () => passwordInput.value.focus(),
-        onFinish: () => form.reset(),
-    });
-};
-
-const closeModal = () => {
-    confirmingUserDeletion.value = false;
-
-    form.clearErrors();
-    form.reset();
-};
-</script>
-
 <template>
-    <section class="space-y-6">
-        <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Delete Account
-            </h2>
+  <section>
+    <header>
+      <h2 class="text-base font-semibold text-destructive">Delete Account</h2>
+      <p class="mt-1 text-sm text-muted-foreground">Permanently delete your account and all of its resources and data.</p>
+    </header>
 
-            <p class="mt-1 text-sm text-gray-600">
-                Once your account is deleted, all of its resources and data will
-                be permanently deleted. Before deleting your account, please
-                download any data or information that you wish to retain.
-            </p>
-        </header>
+    <Button class="mt-6" variant="destructive" @click="confirmUserDeletion">Delete Account</Button>
 
-        <DangerButton @click="confirmUserDeletion">Delete Account</DangerButton>
+    <Dialog :open="confirmingUserDeletion" @update:open="updateDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Account</DialogTitle>
+          <DialogDescription>
+            This action permanently deletes your account and its data. Enter your password to confirm.
+          </DialogDescription>
+        </DialogHeader>
 
-        <Modal :show="confirmingUserDeletion" @close="closeModal">
-            <div class="p-6">
-                <h2
-                    class="text-lg font-medium text-gray-900"
-                >
-                    Are you sure you want to delete your account?
-                </h2>
+        <form class="space-y-4" @submit.prevent="deleteUser">
+          <div class="space-y-2">
+            <Label for="password">Password</Label>
+            <Input id="password" ref="passwordInput" v-model="form.password" type="password" autocomplete="current-password" :class="{ 'border-destructive': form.errors.password }" />
+            <p v-if="form.errors.password" class="text-sm text-destructive">{{ form.errors.password }}</p>
+          </div>
 
-                <p class="mt-1 text-sm text-gray-600">
-                    Once your account is deleted, all of its resources and data
-                    will be permanently deleted. Please enter your password to
-                    confirm you would like to permanently delete your account.
-                </p>
-
-                <div class="mt-6">
-                    <InputLabel
-                        for="password"
-                        value="Password"
-                        class="sr-only"
-                    />
-
-                    <TextInput
-                        id="password"
-                        ref="passwordInput"
-                        v-model="form.password"
-                        type="password"
-                        class="mt-1 block w-3/4"
-                        placeholder="Password"
-                        @keyup.enter="deleteUser"
-                    />
-
-                    <InputError :message="form.errors.password" class="mt-2" />
-                </div>
-
-                <div class="mt-6 flex justify-end">
-                    <SecondaryButton @click="closeModal">
-                        Cancel
-                    </SecondaryButton>
-
-                    <DangerButton
-                        class="ms-3"
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                        @click="deleteUser"
-                    >
-                        Delete Account
-                    </DangerButton>
-                </div>
-            </div>
-        </Modal>
-    </section>
+          <DialogFooter>
+            <Button type="button" variant="outline" @click="closeDialog">Cancel</Button>
+            <Button type="submit" variant="destructive" :disabled="form.processing">Delete Account</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </section>
 </template>
+
+<script setup>
+import { nextTick, ref } from 'vue'
+import { useForm } from '@inertiajs/vue3'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+const confirmingUserDeletion = ref(false)
+const passwordInput = ref(null)
+const form = useForm({ password: '' })
+
+function confirmUserDeletion() {
+  confirmingUserDeletion.value = true
+  nextTick(() => passwordInput.value.focus())
+}
+
+function deleteUser() {
+  form.delete(route('profile.destroy'), {
+    preserveScroll: true,
+    onSuccess: closeDialog,
+    onError: () => passwordInput.value.focus(),
+    onFinish: () => form.reset(),
+  })
+}
+
+function updateDialog(isOpen) {
+  if (isOpen) {
+    confirmingUserDeletion.value = true
+    return
+  }
+
+  closeDialog()
+}
+
+function closeDialog() {
+  confirmingUserDeletion.value = false
+  form.clearErrors()
+  form.reset()
+}
+</script>
