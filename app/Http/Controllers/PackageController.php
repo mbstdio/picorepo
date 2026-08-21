@@ -12,26 +12,11 @@ use Inertia\Response;
 
 class PackageController extends Controller
 {
-    public function index(Repository $repository): Response
+    public function index(Repository $repository): RedirectResponse
     {
         $this->authorize('view', $repository);
 
-        $packages = $repository->packages()
-            ->withCount('versions')
-            ->latest()
-            ->get();
-
-        return Inertia::render('Packages/Index', [
-            'repository' => $repository,
-            'packages' => $packages->map(fn ($pkg) => [
-                'id' => $pkg->id,
-                'name' => $pkg->name,
-                'full_name' => $pkg->fullName(),
-                'description' => $pkg->description,
-                'versions_count' => $pkg->versions_count,
-                'created_at' => $pkg->created_at,
-            ]),
-        ]);
+        return redirect()->route('repositories.show', $repository);
     }
 
     public function create(Repository $repository): Response
