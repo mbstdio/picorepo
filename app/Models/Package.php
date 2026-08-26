@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Package extends Model
 {
@@ -27,15 +28,20 @@ class Package extends Model
     /**
      * Versions sorted by semver descending (4.1.0 > 3.34.3 > 1.0.0-beta).
      */
-    public function sortedVersions(): \Illuminate\Support\Collection
+    public function sortedVersions(): Collection
     {
         $this->loadMissing('versions');
 
         return $this->versions->sort(function ($a, $b) {
             $aIsDev = str_starts_with($a->version, 'dev-');
             $bIsDev = str_starts_with($b->version, 'dev-');
-            if ($aIsDev && !$bIsDev) return 1;
-            if (!$aIsDev && $bIsDev) return -1;
+            if ($aIsDev && ! $bIsDev) {
+                return 1;
+            }
+            if (! $aIsDev && $bIsDev) {
+                return -1;
+            }
+
             return version_compare($b->version, $a->version);
         })->values();
     }
@@ -45,6 +51,6 @@ class Package extends Model
      */
     public function fullName(): string
     {
-        return $this->repository->name . '/' . $this->name;
+        return strtolower($this->repository->name.'/'.$this->name);
     }
 }

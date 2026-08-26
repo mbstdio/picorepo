@@ -69,6 +69,7 @@ Route::get('/download/{version}', [DownloadController::class, 'download'])->name
 // Composer endpoints (public, auth handled inside controller)
 Route::prefix('composer/{repositorySlug}')->group(function () {
     Route::get('/packages.json', [ComposerController::class, 'metadata'])->name('composer.metadata');
+    Route::get('/p2/{vendor}/{packageName}.json', [ComposerController::class, 'packageMetadata'])->name('composer.package-metadata');
     Route::get('/p/$package$.json', [ComposerController::class, 'allPackages'])->name('composer.all-packages');
     Route::get('/p/{packageName}.json', [ComposerController::class, 'packageMeta'])->name('composer.package')->where('packageName', '[^/]+');
 });

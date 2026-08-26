@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PackageVersion;
 use App\Models\Repository;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
 class ComposerController extends Controller
@@ -18,20 +19,25 @@ class ComposerController extends Controller
 
         $this->authorizeComposerAccess($repository);
 
-        $packageNames = $repository->packages()
+        $packages = $repository->packages()
             ->with('versions')
-            ->get()
-            ->filter(fn($p) => $p->versions->isNotEmpty())
-            ->map(fn($p) => $p->fullName())
+            ->get();
+        $packageNames = $packages
+            ->filter(fn ($p) => $p->versions->isNotEmpty())
+            ->map(fn ($p) => $p->fullName())
             ->values()
             ->all();
 
-        return response()->json([
-            'packages'           => new \stdClass,
-            'metadata-url'       => '/composer/' . $repositorySlug . '/p/%24package%24.json',
+        $metadata = [
+            'packages' => new \stdClass,
+            'metadata-url' => '/composer/'.$repositorySlug.'/p2/%package%.json',
             'available-packages' => $packageNames,
-            'info'               => "Add to composer.json repositories: " . json_encode($repository->composerConfig()),
-        ]);
+            'info' => 'Add to composer.json repositories: '.json_encode($repository->composerConfig()),
+        ];
+
+        return response()->json($metadata)
+            ->setEtag(md5(json_encode($metadata)))
+            ->setLastModified($packages->flatMap->versions->max('updated_at'));
     }
 
     /**
@@ -51,7 +57,7 @@ class ComposerController extends Controller
             foreach ($package->sortedVersions() as $version) {
                 $versions[$version->version] = $version->toComposerArray();
             }
-            if (!empty($versions)) {
+            if (! empty($versions)) {
                 $packages[$fullName] = $versions;
             }
         }
@@ -75,7 +81,7 @@ class ComposerController extends Controller
         // Composer v2 encodes vendor/package as vendor~package in the URL
         $fullName = str_replace('~', '/', $packageName);
 
-        if (!str_contains($fullName, '/')) {
+        if (! str_contains($fullName, '/')) {
             abort(404);
         }
 
@@ -99,6 +105,46 @@ class ComposerController extends Controller
         ]);
     }
 
+    /**
+     * Composer v2 package metadata: /composer/{repo}/p2/{vendor}/{package}.json
+     */
+    public function packageMetadata(string $repositorySlug, string $vendor, string $packageName): JsonResponse
+    {
+        $repository = Repository::where('slug', $repositorySlug)->firstOrFail();
+
+        $this->authorizeComposerAccess($repository);
+
+        if ($vendor !== strtolower($repository->name)) {
+            abort(404);
+        }
+
+        $isDevelopmentMetadata = str_ends_with($packageName, '~dev');
+        $packageName = $isDevelopmentMetadata ? substr($packageName, 0, -4) : $packageName;
+        $package = $repository->packages()
+            ->whereRaw('LOWER(name) = ?', [strtolower($packageName)])
+            ->with('versions')
+            ->firstOrFail();
+        $versions = $package->sortedVersions()
+            ->filter(fn (PackageVersion $version) => str_starts_with($version->version, 'dev-') === $isDevelopmentMetadata)
+            ->map(fn (PackageVersion $version) => $version->toComposerArray())
+            ->values()
+            ->all();
+
+        if ($versions === []) {
+            abort(404);
+        }
+
+        $metadata = [
+            'packages' => [
+                $package->fullName() => $versions,
+            ],
+        ];
+
+        return response()->json($metadata)
+            ->setEtag(md5(json_encode($metadata)))
+            ->setLastModified($package->versions->max('updated_at'));
+    }
+
     protected function authorizeComposerAccess(Repository $repository): void
     {
         if ($repository->isPublic()) {
@@ -114,7 +160,7 @@ class ComposerController extends Controller
             abort(401, 'Authentication required for private repositories.');
         }
 
-        $user = \App\Models\User::whereHas('tokens', function ($q) use ($token) {
+        $user = User::whereHas('tokens', function ($q) use ($token) {
             $q->where('token', hash('sha256', $token));
         })->first();
 
