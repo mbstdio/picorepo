@@ -76,7 +76,13 @@ Start the local development environment:
 composer run dev
 ```
 
-This starts the Laravel server, Vite, the queue worker, and Laravel Pail. Visit `http://127.0.0.1:8000/register` to create the first account.
+This starts the Laravel server, Vite, the queue worker, and Laravel Pail.
+
+Create the first administrator account with the interactive seeder. It prompts for an email, name, and password; do not supply credentials on the command line:
+
+```bash
+php artisan db:seed --class=AdminUserSeeder
+```
 
 ## Configuration
 
@@ -91,6 +97,16 @@ APP_URL=https://packages.example.com
 ```
 
 Use HTTPS in production.
+
+### Registration and rate limits
+
+Public registration is disabled by default. Set `REGISTRATION_ENABLED=true` only when self-service sign-up is intended. Registration is limited to five attempts per minute per IP address, and authenticated resource creation is limited to ten attempts per minute per user. Adjust these limits when needed:
+
+```dotenv
+REGISTRATION_ENABLED=false
+REGISTRATION_MAX_ATTEMPTS=5
+RESOURCE_CREATION_MAX_ATTEMPTS=10
+```
 
 ### Database
 

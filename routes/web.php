@@ -27,13 +27,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Repositories
-    Route::resource('repositories', RepositoryController::class);
+    Route::resource('repositories', RepositoryController::class)->middlewareFor('store', 'throttle:resource-creation');
 
     // Packages nested in repositories
     Route::scopeBindings()->prefix('repositories/{repository}/packages')->name('repositories.packages.')->group(function () {
         Route::get('/', [PackageController::class, 'index'])->name('index');
         Route::get('/create', [PackageController::class, 'create'])->name('create');
-        Route::post('/', [PackageController::class, 'store'])->name('store');
+        Route::post('/', [PackageController::class, 'store'])->middleware('throttle:resource-creation')->name('store');
         Route::get('/{package}/edit', [PackageController::class, 'edit'])->name('edit');
         Route::get('/{package}', [PackageController::class, 'show'])->name('show');
         Route::put('/{package}', [PackageController::class, 'update'])->name('update');
@@ -42,7 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Versions nested in packages
         Route::prefix('/{package}/versions')->name('versions.')->group(function () {
             Route::get('/create', [PackageVersionController::class, 'create'])->name('create');
-            Route::post('/', [PackageVersionController::class, 'store'])->name('store');
+            Route::post('/', [PackageVersionController::class, 'store'])->middleware('throttle:resource-creation')->name('store');
             Route::get('/{version}/edit', [PackageVersionController::class, 'edit'])->name('edit');
             Route::put('/{version}', [PackageVersionController::class, 'update'])->name('update');
             Route::delete('/{version}', [PackageVersionController::class, 'destroy'])->name('destroy');
@@ -52,14 +52,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Repository user management
     Route::prefix('repositories/{repository}/users')->name('repositories.users.')->group(function () {
         Route::get('/', [RepositoryUserController::class, 'index'])->name('index');
-        Route::post('/', [RepositoryUserController::class, 'store'])->name('store');
+        Route::post('/', [RepositoryUserController::class, 'store'])->middleware('throttle:resource-creation')->name('store');
         Route::patch('/{user}', [RepositoryUserController::class, 'update'])->name('update');
         Route::delete('/{user}', [RepositoryUserController::class, 'destroy'])->name('destroy');
     });
 
     // API Tokens
     Route::get('/profile/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
-    Route::post('/profile/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
+    Route::post('/profile/api-tokens', [ApiTokenController::class, 'store'])->middleware('throttle:resource-creation')->name('api-tokens.store');
     Route::delete('/profile/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 });
 
