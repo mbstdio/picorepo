@@ -8,6 +8,7 @@ use App\Models\Package;
 use App\Models\PackageVersion;
 use App\Models\Repository;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,11 +19,6 @@ class PackageVersionController extends Controller
     {
         $this->authorize('manageVersions', $repository);
 
-        $availableDisks = ['local'];
-        if (config('filesystems.disks.s3.key')) {
-            $availableDisks[] = 's3';
-        }
-
         return Inertia::render('Versions/Create', [
             'repository' => $repository,
             'package' => [
@@ -30,7 +26,7 @@ class PackageVersionController extends Controller
                 'name' => $package->name,
                 'full_name' => $package->fullName(),
             ],
-            'availableDisks' => $availableDisks,
+            'availableDisks' => StorePackageVersionRequest::availableDisks(),
             'types' => [
                 'library',
                 'project',
@@ -46,24 +42,40 @@ class PackageVersionController extends Controller
     {
         $this->authorize('manageVersions', $repository);
 
-        $zipPath = null;
         $disk = $request->disk;
+        $storage = null;
+        $zipPath = null;
 
-        if ($request->hasFile('zip_file')) {
-            $zipPath = $request->file('zip_file')->store(
+        try {
+            $storage = Storage::disk($disk);
+            $zipPath = $storage->putFile(
                 "packages/{$repository->slug}/{$package->name}/{$request->version}",
-                $disk
+                $request->file('zip_file')
             );
-        }
 
-        $package->versions()->create([
-            'version' => $request->version,
-            'type' => $request->type,
-            'disk' => $disk,
-            'zip_path' => $zipPath,
-            'description' => $request->description,
-            'extra' => $request->extra ? json_decode($request->extra, true) : null,
-        ]);
+            if (! $zipPath) {
+                throw new \RuntimeException('Archive upload failed.');
+            }
+
+            DB::transaction(fn () => $package->versions()->create([
+                'version' => $request->version,
+                'type' => $request->type,
+                'disk' => $disk,
+                'zip_path' => $zipPath,
+                'description' => $request->description,
+                'extra' => $request->extra ? json_decode($request->extra, true) : null,
+            ]));
+        } catch (\Throwable $exception) {
+            if ($zipPath && $storage) {
+                $storage->delete($zipPath);
+            }
+
+            report($exception);
+
+            return back()->withErrors([
+                'zip_file' => 'The archive could not be published. Please try again.',
+            ]);
+        }
 
         return redirect()->route('repositories.packages.show', [$repository, $package])
             ->with('success', "Version {$request->version} added successfully.");

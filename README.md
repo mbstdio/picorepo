@@ -34,7 +34,7 @@ Pico Repo is a self-hosted Composer repository manager for publishing and distri
 
 - **Flexible archive storage**
 
-  Store archives locally by default, or use S3 after installing and configuring its Flysystem adapter.
+  Store archives locally by default, or use S3 after configuring its credentials.
 
 ## Installation
 
@@ -107,13 +107,7 @@ Pico Repo can use another Laravel-supported database driver. Update the relevant
 
 Package archives are stored on the `local` disk by default. They are kept under `storage/app/private` and are delivered through the application so private repository access rules are enforced.
 
-To store archives on S3, install the adapter:
-
-```bash
-composer require league/flysystem-aws-s3-v3 "^3.0"
-```
-
-Then configure the S3 credentials in `.env`:
+To store archives on S3, configure the S3 credentials in `.env`:
 
 ```dotenv
 AWS_ACCESS_KEY_ID=

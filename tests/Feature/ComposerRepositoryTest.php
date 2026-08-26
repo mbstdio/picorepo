@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Repository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ComposerRepositoryTest extends TestCase
@@ -43,7 +44,9 @@ class ComposerRepositoryTest extends TestCase
             'version' => 'dev-main',
             'type' => 'library',
             'disk' => 'local',
+            'zip_path' => 'packages/dev-main.zip',
         ]);
+        Storage::disk('local')->put('packages/dev-main.zip', 'archive');
 
         $response = $this->get("/composer/{$repository->slug}/p2/acme/demo~dev.json");
 
@@ -78,6 +81,7 @@ class ComposerRepositoryTest extends TestCase
 
     private function publicPackage(string $repositoryName = 'acme', string $packageName = 'demo'): array
     {
+        Storage::fake('local');
         $repository = Repository::create([
             'name' => $repositoryName,
             'type' => 'public',
@@ -85,10 +89,12 @@ class ComposerRepositoryTest extends TestCase
         $package = $repository->packages()->create([
             'name' => $packageName,
         ]);
+        Storage::disk('local')->put('packages/1.0.0.zip', 'archive');
         $package->versions()->create([
             'version' => '1.0.0',
             'type' => 'library',
             'disk' => 'local',
+            'zip_path' => 'packages/1.0.0.zip',
         ]);
 
         return [$repository, $package];

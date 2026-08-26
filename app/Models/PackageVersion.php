@@ -44,14 +44,27 @@ class PackageVersion extends Model
         );
     }
 
+    public function hasUsableArchive(): bool
+    {
+        if (! $this->zip_path || ! in_array($this->disk, ['local', 's3'], true)) {
+            return false;
+        }
+
+        try {
+            return Storage::disk($this->disk)->exists($this->zip_path);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function toComposerArray(): array
     {
         $data = [
-            'name'    => $this->package->fullName(),
+            'name' => $this->package->fullName(),
             'version' => $this->version,
-            'type'    => $this->type ?? 'library',
-            'dist'    => [
-                'url'  => $this->downloadUrl(),
+            'type' => $this->type ?? 'library',
+            'dist' => [
+                'url' => $this->downloadUrl(),
                 'type' => 'zip',
             ],
         ];

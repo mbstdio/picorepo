@@ -22,8 +22,10 @@ class ComposerController extends Controller
         $packages = $repository->packages()
             ->with('versions')
             ->get();
+        $usableVersions = $packages->flatMap->versions
+            ->filter(fn (PackageVersion $version) => $version->hasUsableArchive());
         $packageNames = $packages
-            ->filter(fn ($p) => $p->versions->isNotEmpty())
+            ->filter(fn ($package) => $package->usableVersions()->isNotEmpty())
             ->map(fn ($p) => $p->fullName())
             ->values()
             ->all();
@@ -37,7 +39,7 @@ class ComposerController extends Controller
 
         return response()->json($metadata)
             ->setEtag(md5(json_encode($metadata)))
-            ->setLastModified($packages->flatMap->versions->max('updated_at'));
+            ->setLastModified($usableVersions->max('updated_at'));
     }
 
     /**
@@ -54,7 +56,7 @@ class ComposerController extends Controller
         foreach ($repository->packages()->with('versions')->get() as $package) {
             $fullName = $package->fullName();
             $versions = [];
-            foreach ($package->sortedVersions() as $version) {
+            foreach ($package->usableVersions() as $version) {
                 $versions[$version->version] = $version->toComposerArray();
             }
             if (! empty($versions)) {
@@ -93,7 +95,7 @@ class ComposerController extends Controller
             ->firstOrFail();
 
         $versions = [];
-        foreach ($package->sortedVersions() as $version) {
+        foreach ($package->usableVersions() as $version) {
             $versions[$version->version] = $version->toComposerArray();
         }
 
@@ -124,7 +126,7 @@ class ComposerController extends Controller
             ->whereRaw('LOWER(name) = ?', [strtolower($packageName)])
             ->with('versions')
             ->firstOrFail();
-        $versions = $package->sortedVersions()
+        $versions = $package->usableVersions()
             ->filter(fn (PackageVersion $version) => str_starts_with($version->version, 'dev-') === $isDevelopmentMetadata)
             ->map(fn (PackageVersion $version) => $version->toComposerArray())
             ->values()

@@ -46,6 +46,13 @@ class Package extends Model
         })->values();
     }
 
+    public function usableVersions(): Collection
+    {
+        return $this->sortedVersions()
+            ->filter(fn (PackageVersion $version) => $version->hasUsableArchive())
+            ->values();
+    }
+
     /**
      * Returns the full Composer package name: vendor/package
      */
