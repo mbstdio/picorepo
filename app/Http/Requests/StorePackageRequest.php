@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePackageRequest extends FormRequest
 {
@@ -14,16 +15,29 @@ class StorePackageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'        => ['required', 'string', 'max:100', 'regex:/^[a-z0-9][a-z0-9_-]*$/i', 'unique:packages,name'],
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-z0-9]+(([._]|-{1,2})[a-z0-9]+)*$/',
+                Rule::unique('packages')->where('repository_id', $this->route('repository')->id),
+            ],
             'description' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('name'))) {
+            $this->merge(['name' => strtolower($this->input('name'))]);
+        }
     }
 
     public function messages(): array
     {
         return [
-            'name.unique' => 'A package with this name already exists globally.',
-            'name.regex'  => 'The name may only contain letters, numbers, hyphens and underscores.',
+            'name.unique' => 'A package with this name already exists in this repository.',
+            'name.regex' => 'The name must be a valid Composer package name.',
         ];
     }
 }
