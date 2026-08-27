@@ -15,13 +15,7 @@ class RepositoryOwnershipService
         DB::transaction(function () use ($repository, $user, $role) {
             $this->lockRepository($repository);
 
-            $membership = DB::table('repository_user')
-                ->where('repository_id', $repository->id)
-                ->where('user_id', $user->id)
-                ->lockForUpdate()
-                ->first();
-
-            abort_if($membership === null, 404);
+            $membership = $this->lockedMembership($repository, $user);
 
             if ($membership->role === 'owner' && $role !== 'owner') {
                 $this->ensureOwnerRemains($repository, 'role');
@@ -36,13 +30,7 @@ class RepositoryOwnershipService
         DB::transaction(function () use ($repository, $user) {
             $this->lockRepository($repository);
 
-            $membership = DB::table('repository_user')
-                ->where('repository_id', $repository->id)
-                ->where('user_id', $user->id)
-                ->lockForUpdate()
-                ->first();
-
-            abort_if($membership === null, 404);
+            $membership = $this->lockedMembership($repository, $user);
 
             if ($membership->role === 'owner') {
                 $this->ensureOwnerRemains($repository, 'error');
@@ -52,9 +40,9 @@ class RepositoryOwnershipService
         }, attempts: 3);
     }
 
-    public function deleteUser(User $user, ?Closure $beforeDelete = null): void
+    public function deleteUser(User $user, Closure $logout): void
     {
-        DB::transaction(function () use ($user, $beforeDelete) {
+        DB::transaction(function () use ($user, $logout) {
             $repositories = Repository::query()
                 ->whereHas('users', fn ($users) => $users
                     ->where('repository_user.user_id', $user->id)
@@ -67,7 +55,8 @@ class RepositoryOwnershipService
                 $this->ensureOwnerRemains($repository, 'account');
             }
 
-            $beforeDelete?->__invoke();
+            // The session guard persists its user while logging out, so it must run before deletion.
+            $logout();
 
             $user->delete();
         }, attempts: 3);
@@ -76,6 +65,19 @@ class RepositoryOwnershipService
     private function lockRepository(Repository $repository): void
     {
         Repository::query()->whereKey($repository->id)->lockForUpdate()->firstOrFail();
+    }
+
+    private function lockedMembership(Repository $repository, User $user): object
+    {
+        $membership = DB::table('repository_user')
+            ->where('repository_id', $repository->id)
+            ->where('user_id', $user->id)
+            ->lockForUpdate()
+            ->first();
+
+        abort_if($membership === null, 404);
+
+        return $membership;
     }
 
     private function ensureOwnerRemains(Repository $repository, string $errorKey): void
