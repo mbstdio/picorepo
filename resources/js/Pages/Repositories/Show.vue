@@ -310,6 +310,9 @@
                             >? This will also delete all packages and versions.
                             This action cannot be undone.
                         </DialogDescription>
+                        <p v-if="archiveError" class="text-sm text-destructive">
+                            {{ archiveError }}
+                        </p>
                     </DialogHeader>
                     <DialogFooter>
                         <Button
@@ -366,6 +369,7 @@ const props = defineProps({
 const activeTab = ref("packages");
 const showDeleteDialog = ref(false);
 const copied = ref(false);
+const archiveError = ref(null);
 
 const composerConfigJson = computed(() =>
     JSON.stringify(props.repository.composer_config, null, 4),
@@ -391,10 +395,13 @@ function copyConfig() {
 }
 
 function confirmDelete() {
+    archiveError.value = null;
     showDeleteDialog.value = true;
 }
 
 function deleteRepository() {
-    router.delete(route("repositories.destroy", props.repository.slug));
+    router.delete(route("repositories.destroy", props.repository.slug), {
+        onError: (errors) => (archiveError.value = errors.archive),
+    });
 }
 </script>

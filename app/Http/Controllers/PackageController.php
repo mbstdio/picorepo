@@ -6,6 +6,7 @@ use App\Http\Requests\StorePackageRequest;
 use App\Http\Requests\UpdatePackageRequest;
 use App\Models\Package;
 use App\Models\Repository;
+use App\Services\ArchiveDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -93,11 +94,23 @@ class PackageController extends Controller
             ->with('success', 'Package updated successfully.');
     }
 
-    public function destroy(Repository $repository, Package $package): RedirectResponse
+    public function destroy(Repository $repository, Package $package, ArchiveDeletionService $archives): RedirectResponse
     {
         $this->authorize('delete', $package);
 
-        $package->delete();
+        try {
+            $archives->deleteAll($package->versions);
+
+            if (! $package->delete()) {
+                throw new \RuntimeException("Could not delete package {$package->name}.");
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'archive' => 'The package archives could not be deleted. Please try again.',
+            ]);
+        }
 
         return redirect()->route('repositories.show', $repository)
             ->with('success', 'Package deleted.');

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePackageVersionRequest;
 use App\Models\Package;
 use App\Models\PackageVersion;
 use App\Models\Repository;
+use App\Services\ArchiveDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -119,15 +120,23 @@ class PackageVersionController extends Controller
             ->with('success', "Version {$version->version} updated successfully.");
     }
 
-    public function destroy(Repository $repository, Package $package, PackageVersion $version): RedirectResponse
+    public function destroy(Repository $repository, Package $package, PackageVersion $version, ArchiveDeletionService $archives): RedirectResponse
     {
         $this->authorize('manageVersions', $repository);
 
-        if ($version->zip_path) {
-            Storage::disk($version->disk)->delete($version->zip_path);
-        }
+        try {
+            $archives->delete($version);
 
-        $version->delete();
+            if (! $version->delete()) {
+                throw new \RuntimeException("Could not delete version {$version->version}.");
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'archive' => 'The archive could not be deleted. Please try again.',
+            ]);
+        }
 
         return redirect()->route('repositories.packages.show', [$repository, $package])
             ->with('success', "Version {$version->version} deleted.");

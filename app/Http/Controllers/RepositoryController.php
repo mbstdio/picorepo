@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRepositoryRequest;
 use App\Http\Requests\UpdateRepositoryRequest;
 use App\Models\Repository;
+use App\Services\ArchiveDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -19,13 +20,13 @@ class RepositoryController extends Controller
             ->latest()
             ->get()
             ->map(fn ($repo) => [
-                'id'             => $repo->id,
-                'name'           => $repo->name,
-                'slug'           => $repo->slug,
-                'type'           => $repo->type,
-                'description'    => $repo->description,
+                'id' => $repo->id,
+                'name' => $repo->name,
+                'slug' => $repo->slug,
+                'type' => $repo->type,
+                'description' => $repo->description,
                 'packages_count' => $repo->packages_count,
-                'created_at'     => $repo->created_at,
+                'created_at' => $repo->created_at,
             ]);
 
         return Inertia::render('Repositories/Index', [
@@ -41,9 +42,9 @@ class RepositoryController extends Controller
     public function store(StoreRepositoryRequest $request): RedirectResponse
     {
         $repository = Repository::create([
-            'name'        => $request->name,
-            'slug'        => Str::slug($request->name),
-            'type'        => $request->type,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'type' => $request->type,
             'description' => $request->description,
         ]);
 
@@ -64,39 +65,39 @@ class RepositoryController extends Controller
         ]);
 
         return Inertia::render('Repositories/Show', [
-            'repository'    => [
-                'id'             => $repository->id,
-                'name'           => $repository->name,
-                'slug'           => $repository->slug,
-                'type'           => $repository->type,
-                'description'    => $repository->description,
-                'composer_config'=> $repository->composerConfig(),
-                'composer_url'   => $repository->composerUrl(),
-                'packages'       => $repository->packages->map(fn ($pkg) => [
-                    'id'          => $pkg->id,
-                    'name'        => $pkg->name,
-                    'full_name'   => $pkg->fullName(),
+            'repository' => [
+                'id' => $repository->id,
+                'name' => $repository->name,
+                'slug' => $repository->slug,
+                'type' => $repository->type,
+                'description' => $repository->description,
+                'composer_config' => $repository->composerConfig(),
+                'composer_url' => $repository->composerUrl(),
+                'packages' => $repository->packages->map(fn ($pkg) => [
+                    'id' => $pkg->id,
+                    'name' => $pkg->name,
+                    'full_name' => $pkg->fullName(),
                     'description' => $pkg->description,
-                    'versions'    => $pkg->sortedVersions()->map(fn ($v) => [
-                        'id'          => $v->id,
-                        'version'     => $v->version,
-                        'type'        => $v->type,
-                        'disk'        => $v->disk,
+                    'versions' => $pkg->sortedVersions()->map(fn ($v) => [
+                        'id' => $v->id,
+                        'version' => $v->version,
+                        'type' => $v->type,
+                        'disk' => $v->disk,
                         'description' => $v->description,
-                        'created_at'  => $v->created_at,
+                        'created_at' => $v->created_at,
                     ]),
                 ]),
-                'users'          => $repository->users->map(fn ($u) => [
-                    'id'   => $u->id,
+                'users' => $repository->users->map(fn ($u) => [
+                    'id' => $u->id,
                     'name' => $u->name,
-                    'email'=> $u->email,
+                    'email' => $u->email,
                     'role' => $u->pivot->role,
                 ]),
                 'can' => [
-                    'update'         => auth()->check() && auth()->user()->can('update', $repository),
-                    'delete'         => auth()->check() && auth()->user()->can('delete', $repository),
-                    'manage_access'  => auth()->check() && auth()->user()->can('manageAccess', $repository),
-                    'manage_versions'=> auth()->check() && auth()->user()->can('manageVersions', $repository),
+                    'update' => auth()->check() && auth()->user()->can('update', $repository),
+                    'delete' => auth()->check() && auth()->user()->can('delete', $repository),
+                    'manage_access' => auth()->check() && auth()->user()->can('manageAccess', $repository),
+                    'manage_versions' => auth()->check() && auth()->user()->can('manageVersions', $repository),
                 ],
             ],
         ]);
@@ -116,9 +117,9 @@ class RepositoryController extends Controller
         $this->authorize('update', $repository);
 
         $repository->update([
-            'name'        => $request->name,
-            'slug'        => Str::slug($request->name),
-            'type'        => $request->type,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'type' => $request->type,
             'description' => $request->description,
         ]);
 
@@ -126,11 +127,23 @@ class RepositoryController extends Controller
             ->with('success', 'Repository updated successfully.');
     }
 
-    public function destroy(Repository $repository): RedirectResponse
+    public function destroy(Repository $repository, ArchiveDeletionService $archives): RedirectResponse
     {
         $this->authorize('delete', $repository);
 
-        $repository->delete();
+        try {
+            $archives->deleteAll($repository->packages()->with('versions')->get()->flatMap->versions);
+
+            if (! $repository->delete()) {
+                throw new \RuntimeException("Could not delete repository {$repository->name}.");
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'archive' => 'The repository archives could not be deleted. Please try again.',
+            ]);
+        }
 
         return redirect()->route('repositories.index')
             ->with('success', 'Repository deleted successfully.');

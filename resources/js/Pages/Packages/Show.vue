@@ -162,6 +162,9 @@
                             <strong>{{ package_.full_name }}</strong> and its
                             zip file.
                         </DialogDescription>
+                        <p v-if="archiveError" class="text-sm text-destructive">
+                            {{ archiveError }}
+                        </p>
                     </DialogHeader>
                     <DialogFooter>
                         <Button
@@ -186,6 +189,9 @@
                             <strong>{{ package_.full_name }}</strong> and all
                             its versions.
                         </DialogDescription>
+                        <p v-if="archiveError" class="text-sm text-destructive">
+                            {{ archiveError }}
+                        </p>
                     </DialogHeader>
                     <DialogFooter>
                         <Button
@@ -237,6 +243,7 @@ const package_ = props.package;
 const showDeleteDialog = ref(false);
 const showDeleteVersionDialog = ref(false);
 const selectedVersion = ref(null);
+const archiveError = ref(null);
 
 function formatDate(date) {
     return new Date(date).toLocaleDateString();
@@ -244,6 +251,7 @@ function formatDate(date) {
 
 function confirmDeleteVersion(v) {
     selectedVersion.value = v;
+    archiveError.value = null;
     showDeleteVersionDialog.value = true;
 }
 
@@ -254,16 +262,23 @@ function deleteVersion() {
             package_.id,
             selectedVersion.value.id,
         ]),
+        {
+            onError: (errors) => (archiveError.value = errors.archive),
+            onSuccess: () => (showDeleteVersionDialog.value = false),
+        },
     );
-    showDeleteVersionDialog.value = false;
 }
 
 function deletePackage() {
+    archiveError.value = null;
     router.delete(
         route("repositories.packages.destroy", [
             props.repository.slug,
             package_.id,
         ]),
+        {
+            onError: (errors) => (archiveError.value = errors.archive),
+        },
     );
 }
 </script>
