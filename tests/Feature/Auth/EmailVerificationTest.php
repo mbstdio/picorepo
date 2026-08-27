@@ -55,4 +55,22 @@ class EmailVerificationTest extends TestCase
 
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
+
+    public function test_unverified_user_is_redirected_to_the_verification_notice_from_repository_management(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get(route('repositories.index'))
+            ->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_verified_user_can_access_repository_management(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('repositories.index'))
+            ->assertOk();
+    }
 }

@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -21,6 +24,7 @@ class RegistrationTest extends TestCase
     public function test_new_users_can_register(): void
     {
         config(['registration.enabled' => true]);
+        Notification::fake();
 
         $response = $this->post('/register', [
             'name' => 'Test User',
@@ -30,6 +34,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
+        Notification::assertSentTo(User::first(), VerifyEmail::class);
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
