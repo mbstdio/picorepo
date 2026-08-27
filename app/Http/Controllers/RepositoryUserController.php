@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRepositoryUserRequest;
 use App\Models\Repository;
 use App\Models\User;
+use App\Services\RepositoryOwnershipService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,15 +17,15 @@ class RepositoryUserController extends Controller
         $this->authorize('manageAccess', $repository);
 
         $users = $repository->users()->get()->map(fn ($u) => [
-            'id'    => $u->id,
-            'name'  => $u->name,
+            'id' => $u->id,
+            'name' => $u->name,
             'email' => $u->email,
-            'role'  => $u->pivot->role,
+            'role' => $u->pivot->role,
         ]);
 
         return Inertia::render('Users/Index', [
             'repository' => $repository,
-            'users'      => $users,
+            'users' => $users,
         ]);
     }
 
@@ -40,7 +41,7 @@ class RepositoryUserController extends Controller
             ->with('success', "{$user->name} added as {$request->role}.");
     }
 
-    public function update(Repository $repository, User $user): RedirectResponse
+    public function update(Repository $repository, User $user, RepositoryOwnershipService $ownership): RedirectResponse
     {
         $this->authorize('manageAccess', $repository);
 
@@ -48,13 +49,13 @@ class RepositoryUserController extends Controller
             'role' => ['required', 'in:owner,maintainer'],
         ])['role'];
 
-        $repository->users()->updateExistingPivot($user->id, ['role' => $role]);
+        $ownership->changeRole($repository, $user, $role);
 
         return redirect()->route('repositories.users.index', $repository)
             ->with('success', 'Role updated.');
     }
 
-    public function destroy(Repository $repository, User $user): RedirectResponse
+    public function destroy(Repository $repository, User $user, RepositoryOwnershipService $ownership): RedirectResponse
     {
         $this->authorize('manageAccess', $repository);
 
@@ -62,7 +63,7 @@ class RepositoryUserController extends Controller
             return back()->withErrors(['error' => 'You cannot remove yourself.']);
         }
 
-        $repository->users()->detach($user->id);
+        $ownership->removeUser($repository, $user);
 
         return redirect()->route('repositories.users.index', $repository)
             ->with('success', 'User removed from repository.');
