@@ -15,8 +15,15 @@ class RepositoryController extends Controller
 {
     public function index(): Response
     {
-        $repositories = Repository::withCount('packages')
-            ->with('users')
+        $repositories = Repository::query()
+            ->where(function ($query) {
+                $query->where('type', 'public');
+
+                if ($userId = auth()->id()) {
+                    $query->orWhereHas('users', fn ($users) => $users->whereKey($userId));
+                }
+            })
+            ->withCount('packages')
             ->latest()
             ->get()
             ->map(fn ($repo) => [
@@ -64,6 +71,8 @@ class RepositoryController extends Controller
             'users',
         ]);
 
+        $canViewCollaborators = auth()->user()?->hasAccessToRepository($repository) ?? false;
+
         return Inertia::render('Repositories/Show', [
             'repository' => [
                 'id' => $repository->id,
@@ -87,12 +96,12 @@ class RepositoryController extends Controller
                         'created_at' => $v->created_at,
                     ]),
                 ]),
-                'users' => $repository->users->map(fn ($u) => [
+                'users' => $repository->users->map(fn ($u) => array_filter([
                     'id' => $u->id,
                     'name' => $u->name,
-                    'email' => $u->email,
+                    'email' => $canViewCollaborators ? $u->email : null,
                     'role' => $u->pivot->role,
-                ]),
+                ], fn ($value) => $value !== null)),
                 'can' => [
                     'update' => auth()->check() && auth()->user()->can('update', $repository),
                     'delete' => auth()->check() && auth()->user()->can('delete', $repository),

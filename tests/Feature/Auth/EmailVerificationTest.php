@@ -61,7 +61,7 @@ class EmailVerificationTest extends TestCase
         $user = User::factory()->unverified()->create();
 
         $this->actingAs($user)
-            ->get(route('repositories.index'))
+            ->get(route('repositories.create'))
             ->assertRedirect(route('verification.notice'));
     }
 

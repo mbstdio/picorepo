@@ -27,7 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Repositories
-    Route::resource('repositories', RepositoryController::class)->middlewareFor('store', 'throttle:resource-creation');
+    Route::resource('repositories', RepositoryController::class)
+        ->except(['index', 'show'])
+        ->middlewareFor('store', 'throttle:resource-creation');
 
     // Packages nested in repositories
     Route::scopeBindings()->prefix('repositories/{repository}/packages')->name('repositories.packages.')->group(function () {
@@ -62,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/api-tokens', [ApiTokenController::class, 'store'])->middleware('throttle:resource-creation')->name('api-tokens.store');
     Route::delete('/profile/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 });
+
+Route::get('repositories', [RepositoryController::class, 'index'])->name('repositories.index');
+Route::get('repositories/{repository}', [RepositoryController::class, 'show'])->name('repositories.show');
 
 // Package download (supports both token and session auth)
 Route::get('/download/{version}', [DownloadController::class, 'download'])->name('versions.download');
