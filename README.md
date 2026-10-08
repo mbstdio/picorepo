@@ -117,6 +117,8 @@ DB_CONNECTION=sqlite
 DB_DATABASE=/absolute/path/to/database.sqlite
 ```
 
+SQLite write transactions use `IMMEDIATE` mode with a five-second busy timeout and WAL journaling. These defaults serialize concurrent ownership changes; set `DB_BUSY_TIMEOUT`, `DB_JOURNAL_MODE`, or `DB_TRANSACTION_MODE` only when the deployment requires different SQLite behavior.
+
 Pico Repo can use another Laravel-supported database driver. Update the relevant `DB_*` values in `.env` and run `php artisan migrate` after changing the configuration.
 
 ### Archive Storage
