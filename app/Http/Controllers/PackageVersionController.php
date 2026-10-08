@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePackageVersionRequest;
 use App\Models\Package;
 use App\Models\PackageVersion;
 use App\Models\Repository;
+use App\Rules\ComposerMetadata;
 use App\Services\ArchiveDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ class PackageVersionController extends Controller
                 'full_name' => $package->fullName(),
             ],
             'availableDisks' => StorePackageVersionRequest::availableDisks(),
+            'metadataKeys' => ComposerMetadata::SUPPORTED_KEYS,
             'types' => [
                 'library',
                 'project',
@@ -64,7 +66,7 @@ class PackageVersionController extends Controller
                 'disk' => $disk,
                 'zip_path' => $zipPath,
                 'description' => $request->description,
-                'extra' => $request->extra ? json_decode($request->extra, true) : null,
+                'extra' => $request->extra ? json_decode($request->extra) : null,
             ]));
         } catch (\Throwable $exception) {
             if ($zipPath && $storage) {
@@ -98,7 +100,9 @@ class PackageVersionController extends Controller
                 'type' => $version->type,
                 'disk' => $version->disk,
                 'description' => $version->description,
+                'extra' => $version->getRawOriginal('extra'),
             ],
+            'metadataKeys' => ComposerMetadata::SUPPORTED_KEYS,
             'types' => [
                 'library',
                 'project',
@@ -114,7 +118,13 @@ class PackageVersionController extends Controller
     {
         $this->authorize('manageVersions', $repository);
 
-        $version->update($request->validated());
+        $data = $request->validated();
+
+        if (array_key_exists('extra', $data)) {
+            $data['extra'] = $data['extra'] ? json_decode($data['extra']) : null;
+        }
+
+        $version->update($data);
 
         return redirect()->route('repositories.packages.show', [$repository, $package])
             ->with('success', "Version {$version->version} updated successfully.");

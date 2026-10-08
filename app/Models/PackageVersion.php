@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Rules\ComposerMetadata;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use stdClass;
 
 class PackageVersion extends Model
 {
@@ -19,7 +21,7 @@ class PackageVersion extends Model
     ];
 
     protected $casts = [
-        'extra' => 'array',
+        'extra' => 'object',
     ];
 
     public function package(): BelongsTo
@@ -73,8 +75,11 @@ class PackageVersion extends Model
             $data['description'] = $this->description;
         }
 
-        if ($this->extra) {
-            $data = array_merge($data, $this->extra);
+        if ($this->extra instanceof stdClass) {
+            $data += array_intersect_key(
+                get_object_vars($this->extra),
+                array_flip(ComposerMetadata::SUPPORTED_KEYS)
+            );
         }
 
         return $data;

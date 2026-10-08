@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ComposerMetadata;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +36,7 @@ class StorePackageVersionRequest extends FormRequest
             'disk' => ['required', Rule::in(self::availableDisks())],
             'zip_file' => ['required', 'file', 'mimes:zip', 'max:102400'], // 100MB
             'description' => ['nullable', 'string', 'max:500'],
-            'extra' => ['nullable', 'json'],
+            'extra' => ['nullable', new ComposerMetadata],
         ];
     }
 

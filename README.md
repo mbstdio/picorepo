@@ -157,6 +157,29 @@ composer config --global --auth bearer.packages.example.com <token>
 
 Use the hostname only in the Bearer configuration: do not include a protocol or path.
 
+### Custom Composer metadata
+
+The Add Version and Edit Version forms accept optional custom Composer metadata as a JSON object of at most **16 KiB (16,384 bytes)**. Only these top-level Composer keys are supported:
+
+- Package information: `license`, `homepage`, `keywords`, `authors`, `support`, `funding`, `time`, `abandoned`.
+- Dependencies: `require`, `require-dev`, `conflict`, `replace`, `provide`, `suggest`.
+- Installation metadata: `autoload`, `autoload-dev`, `extra`, `bin`.
+
+Use the value formats defined in the [Composer schema](https://getcomposer.org/doc/04-schema.md). For example:
+
+```json
+{
+  "license": "MIT",
+  "require": { "php": "^8.3" },
+  "autoload": { "psr-4": { "Acme\\Demo\\": "src/" } },
+  "extra": { "branch-alias": { "dev-main": "1.x-dev" } }
+}
+```
+
+Pico Repo controls `name`, `version`, `version_normalized`, `type`, and `dist`; custom metadata cannot override them. `source` and all other keys outside the list above are rejected. Set the description through the separate Description field.
+
+Existing invalid metadata is displayed as its stored JSON text on the Edit Version form so it can be corrected. Leave the field blank to clear it, or use `{}` for an empty object. Invalid legacy scalar/list metadata and unsupported legacy keys are ignored in Composer responses. Nested JSON objects and lists retain their shapes when stored and served.
+
 ## Development
 
 `composer run dev` starts all local services together. To run them separately:

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ComposerMetadata;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,6 +37,7 @@ class UpdatePackageVersionRequest extends FormRequest
                 'wordpress-theme',
             ])],
             'description' => ['nullable', 'string', 'max:500'],
+            'extra' => ['nullable', new ComposerMetadata],
         ];
     }
 

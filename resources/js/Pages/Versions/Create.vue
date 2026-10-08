@@ -56,6 +56,13 @@
           <Textarea id="description" v-model="form.description" rows="2" />
         </div>
 
+        <div class="space-y-2">
+          <Label for="extra">Custom Composer metadata <span class="text-muted-foreground font-normal">(optional)</span></Label>
+          <Textarea id="extra" v-model="form.extra" rows="6" class="font-mono" :class="{ 'border-destructive': form.errors.extra }" placeholder='{"require":{"php":"^8.3"},"autoload":{"psr-4":{"Acme\\":"src/"}}}' />
+          <p v-if="form.errors.extra" class="text-sm text-destructive">{{ form.errors.extra }}</p>
+          <p class="text-xs text-muted-foreground">JSON object, max 16 KiB. Supported keys: {{ metadataKeys.join(', ') }}. Package identity, type, and distribution are managed automatically.</p>
+        </div>
+
         <!-- Upload progress -->
         <div v-if="form.progress" class="space-y-1">
           <div class="flex justify-between text-xs text-muted-foreground">
@@ -94,6 +101,7 @@ const props = defineProps({
   package: Object,
   availableDisks: Array,
   types: Array,
+  metadataKeys: Array,
 })
 
 const package_ = props.package
@@ -104,6 +112,7 @@ const form = useForm({
   disk: props.availableDisks[0],
   zip_file: null,
   description: '',
+  extra: '',
 })
 
 function handleFile(e) {

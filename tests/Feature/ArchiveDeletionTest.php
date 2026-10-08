@@ -130,7 +130,8 @@ class ArchiveDeletionTest extends TestCase
         $s3 = Mockery::mock();
         $s3->shouldReceive('delete')->once()->with('packages/example-package/2.0.0.zip')->andThrow(new \RuntimeException('Storage unavailable.'));
         $s3->shouldReceive('delete')->once()->with('packages/example-package/2.0.0.zip')->andReturnTrue();
-        $s3->shouldReceive('delete')->once()->with('packages/another-package/2.0.0.zip')->andReturnTrue();
+        // This archive may be deleted before the failure, then again on retry.
+        $s3->shouldReceive('delete')->between(1, 2)->with('packages/another-package/2.0.0.zip')->andReturnTrue();
         Storage::shouldReceive('disk')->with('local')->andReturn($local);
         Storage::shouldReceive('disk')->with('s3')->andReturn($s3);
 
