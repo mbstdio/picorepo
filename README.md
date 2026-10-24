@@ -223,6 +223,26 @@ the repository search, visibility select, and theme selector. Check visible focu
 in both light and dark themes; open a select or menu with the keyboard, navigate
 its items with arrow keys, and dismiss with Escape.
 
+The authenticated application uses `resources/js/Layouts/AppLayout.vue` for its
+shared shell. On small screens, the navigation menu contains Dashboard,
+Repositories, Profile, API Tokens, and Logout. On desktop, primary links remain
+visible and account links live in the same menu.
+
+Run the browser navigation checks against production assets (stop Vite first):
+
+```bash
+npx playwright install chromium
+npm run test:browser
+```
+
+These checks start a separate Laravel server on port 8010 with a disposable
+SQLite database and test account, without changing your development database.
+They cover navigation, current-page state, keyboard controls and focus return,
+320px reflow, and the equivalent CSS viewport/DPR of 1280×800 at 200% zoom.
+Menu screenshots are saved under `test-results/`. For a native browser zoom
+smoke check, also open the four main pages at 200% zoom and check that the menu
+and its scrollable account details remain reachable without horizontal scrolling.
+
 Run the test suite with:
 
 ```bash
