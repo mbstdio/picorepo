@@ -1,26 +1,17 @@
 <script setup>
-import { nextTick, onMounted, shallowRef, watch } from 'vue'
+import { onMounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import { useColorMode } from '@vueuse/core'
+import { Toaster } from '@/components/ui/sonner'
+import { useFlashNotifications } from '@/composables/useFlashNotifications'
+import 'vue-sonner/style.css'
 
 const page = usePage()
-const success = shallowRef('')
-const error = shallowRef('')
+const theme = useColorMode({ storageKey: 'theme' })
 
-async function announce(flash) {
-  success.value = ''
-  error.value = ''
-  await nextTick()
-  success.value = flash?.success ?? ''
-  error.value = flash?.error ?? ''
-}
-
-onMounted(() => announce(page.props.flash))
-watch(() => page.props.flash, announce, { flush: 'post' })
+onMounted(() => useFlashNotifications(() => page.props.flash))
 </script>
 
 <template>
-  <div class="sr-only">
-    <p role="status">{{ success }}</p>
-    <p role="alert">{{ error }}</p>
-  </div>
+  <Toaster position="top-right" :theme="theme" rich-colors close-button :duration="5000" />
 </template>

@@ -60,18 +60,6 @@
       </div>
     </nav>
 
-    <!-- Flash messages -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <Alert v-if="$page.props.flash?.success" role="presentation" class="mt-4 border-green-200 bg-green-50 text-green-800">
-        <AlertDescription>{{ $page.props.flash.success }}</AlertDescription>
-      </Alert>
-    </div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <Alert v-if="$page.props.flash?.error" role="presentation" variant="destructive" class="mt-4">
-        <AlertDescription>{{ $page.props.flash.error }}</AlertDescription>
-      </Alert>
-    </div>
-
     <!-- Page content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <slot />
@@ -84,7 +72,6 @@ import { computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import ThemeSelector from '@/components/ThemeSelector.vue'
 import {
   DropdownMenu,
