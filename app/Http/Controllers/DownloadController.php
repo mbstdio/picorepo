@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\PackageVersion;
-use Illuminate\Http\Response;
+use App\Models\User;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToReadFile;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DownloadController extends Controller
 {
-    public function download(PackageVersion $version): Response
+    public function download(PackageVersion $version): StreamedResponse
     {
         $repository = $version->package->repository;
 
@@ -19,7 +21,7 @@ class DownloadController extends Controller
                 ?? request()->query('api_token');
 
             if ($token) {
-                $user = \App\Models\User::whereHas('tokens', function ($q) use ($token) {
+                $user = User::whereHas('tokens', function ($q) use ($token) {
                     $q->where('token', hash('sha256', $token));
                 })->first();
 
@@ -42,11 +44,35 @@ class DownloadController extends Controller
         }
 
         $filename = "{$version->package->name}-{$version->version}.zip";
+        $filename = preg_replace('/[\\\\\/\x00-\x1F\x7F]/', '_', $filename);
 
-        return response($disk->get($version->zip_path), 200, [
-            'Content-Type'        => 'application/zip',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Content-Length'      => $disk->size($version->zip_path),
+        $response = $disk->download($version->zip_path, $filename, [
+            'Content-Type' => 'application/zip',
         ]);
+
+        try {
+            $stream = $disk->readStream($version->zip_path);
+        } catch (UnableToReadFile) {
+            abort(404, 'File not found.');
+        }
+
+        abort_unless(is_resource($stream), 404, 'File not found.');
+
+        // Bounded reads avoid fpassthru's whole-file memory mapping on local disks.
+        $response->setCallback(function () use ($stream): void {
+            try {
+                while (! feof($stream)) {
+                    $chunk = fread($stream, 64 * 1024);
+                    if ($chunk === false) {
+                        throw new \RuntimeException('Unable to read archive stream.');
+                    }
+                    echo $chunk;
+                }
+            } finally {
+                fclose($stream);
+            }
+        });
+
+        return $response;
     }
 }
