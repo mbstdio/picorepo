@@ -14,8 +14,8 @@
         <!-- Version -->
         <div class="space-y-2">
           <Label for="version">Version</Label>
-          <Input id="version" v-model="form.version" placeholder="1.0.0" :class="{ 'border-destructive': form.errors.version }" />
-          <p v-if="form.errors.version" class="text-sm text-destructive">{{ form.errors.version }}</p>
+          <Input id="version" v-model="form.version" placeholder="1.0.0" :aria-invalid="!!form.errors.version" :aria-describedby="form.errors.version ? 'version-error' : undefined" />
+          <p v-if="form.errors.version" id="version-error" role="alert" class="text-sm text-destructive">{{ form.errors.version }}</p>
           <p class="text-xs text-muted-foreground">Composer-compatible format: 1.0.0, v2.1.0-beta, dev-main, etc.</p>
         </div>
 
@@ -23,53 +23,55 @@
         <div class="space-y-2">
           <Label for="type">Type</Label>
           <Select v-model="form.type">
-            <SelectTrigger id="type"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="type" :aria-invalid="!!form.errors.type" :aria-describedby="form.errors.type ? 'type-error' : undefined"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="t in types" :key="t" :value="t">{{ t }}</SelectItem>
             </SelectContent>
           </Select>
-          <p v-if="form.errors.type" class="text-sm text-destructive">{{ form.errors.type }}</p>
+          <p v-if="form.errors.type" id="type-error" role="alert" class="text-sm text-destructive">{{ form.errors.type }}</p>
         </div>
 
         <!-- Storage disk -->
-        <div class="space-y-2" v-if="availableDisks.length > 1">
-          <Label>Storage</Label>
+        <fieldset class="space-y-2" :aria-invalid="!!form.errors.disk" :aria-describedby="form.errors.disk ? 'disk-error' : undefined">
+          <legend class="text-sm font-medium">Storage</legend>
           <div class="flex gap-3">
             <label v-for="d in availableDisks" :key="d" class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" :value="d" v-model="form.disk" class="accent-primary" />
+              <input type="radio" name="disk" :value="d" v-model="form.disk" class="accent-primary" />
               <span class="text-sm capitalize">{{ d === 'local' ? 'Local storage' : 'S3 / Cloud' }}</span>
             </label>
           </div>
-        </div>
+          <p v-if="form.errors.disk" id="disk-error" role="alert" class="text-sm text-destructive">{{ form.errors.disk }}</p>
+        </fieldset>
 
         <!-- ZIP upload -->
         <div class="space-y-2">
           <Label for="zip_file">ZIP file</Label>
-          <Input id="zip_file" type="file" accept=".zip" @change="handleFile" :class="{ 'border-destructive': form.errors.zip_file }" />
-          <p v-if="form.errors.zip_file" class="text-sm text-destructive">{{ form.errors.zip_file }}</p>
+          <Input id="zip_file" type="file" accept=".zip" @change="handleFile" :aria-invalid="!!form.errors.zip_file" :aria-describedby="form.errors.zip_file ? 'zip-file-error' : undefined" />
+          <p v-if="form.errors.zip_file" id="zip-file-error" role="alert" class="text-sm text-destructive">{{ form.errors.zip_file }}</p>
           <p class="text-xs text-muted-foreground">Max 100MB. Must be a .zip archive.</p>
         </div>
 
         <!-- Description -->
         <div class="space-y-2">
           <Label for="description">Description <span class="text-muted-foreground font-normal">(optional)</span></Label>
-          <Textarea id="description" v-model="form.description" rows="2" />
+          <Textarea id="description" v-model="form.description" rows="2" :aria-invalid="!!form.errors.description" :aria-describedby="form.errors.description ? 'description-error' : undefined" />
+          <p v-if="form.errors.description" id="description-error" role="alert" class="text-sm text-destructive">{{ form.errors.description }}</p>
         </div>
 
         <div class="space-y-2">
           <Label for="extra">Custom Composer metadata <span class="text-muted-foreground font-normal">(optional)</span></Label>
-          <Textarea id="extra" v-model="form.extra" rows="6" class="font-mono" :class="{ 'border-destructive': form.errors.extra }" placeholder='{"require":{"php":"^8.3"},"autoload":{"psr-4":{"Acme\\":"src/"}}}' />
-          <p v-if="form.errors.extra" class="text-sm text-destructive">{{ form.errors.extra }}</p>
+          <Textarea id="extra" v-model="form.extra" rows="6" class="font-mono" :aria-invalid="!!form.errors.extra" :aria-describedby="form.errors.extra ? 'extra-error' : undefined" placeholder='{"require":{"php":"^8.3"},"autoload":{"psr-4":{"Acme\\":"src/"}}}' />
+          <p v-if="form.errors.extra" id="extra-error" role="alert" class="text-sm text-destructive">{{ form.errors.extra }}</p>
           <p class="text-xs text-muted-foreground">JSON object, max 16 KiB. Supported keys: {{ metadataKeys.join(', ') }}. Package identity, type, and distribution are managed automatically.</p>
         </div>
 
         <!-- Upload progress -->
-        <div v-if="form.progress" class="space-y-1">
+        <div v-if="form.progress" class="space-y-1" role="status">
           <div class="flex justify-between text-xs text-muted-foreground">
             <span>Uploading...</span>
             <span>{{ form.progress.percentage }}%</span>
           </div>
-          <div class="h-2 bg-muted rounded-full overflow-hidden">
+          <div role="progressbar" aria-label="ZIP upload" :aria-valuenow="form.progress.percentage" aria-valuemin="0" aria-valuemax="100" class="h-2 bg-muted rounded-full overflow-hidden">
             <div class="h-full bg-primary transition-all" :style="{ width: form.progress.percentage + '%' }"></div>
           </div>
         </div>
@@ -78,9 +80,7 @@
           <Button type="submit" :disabled="form.processing">
             {{ form.processing ? 'Uploading...' : 'Add Version' }}
           </Button>
-          <Link :href="route('repositories.packages.show', [repository.slug, package_.id])">
-            <Button type="button" variant="outline">Cancel</Button>
-          </Link>
+          <Button variant="outline" as-child><Link :href="route('repositories.packages.show', [repository.slug, package_.id])">Cancel</Link></Button>
         </div>
       </form>
     </div>

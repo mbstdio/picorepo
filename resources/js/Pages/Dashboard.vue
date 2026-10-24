@@ -22,9 +22,7 @@
       <div>
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">My Repositories</h2>
-          <Link :href="route('repositories.index')">
-            <Button variant="outline" size="sm">View all</Button>
-          </Link>
+          <Button variant="outline" size="sm" as-child><Link :href="route('repositories.index')">View all</Link></Button>
         </div>
 
         <div v-if="recentRepos.length === 0" class="text-center py-10 text-muted-foreground border rounded-lg">

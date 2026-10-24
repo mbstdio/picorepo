@@ -34,8 +34,7 @@
                     </p>
                 </div>
                 <div class="flex gap-2">
-                    <Link
-                        v-if="package_.can.manage"
+                    <Button v-if="package_.can.manage" variant="outline" as-child><Link
                         :href="
                             route('repositories.packages.edit', [
                                 repository.slug,
@@ -43,10 +42,9 @@
                             ])
                         "
                     >
-                        <Button variant="outline">Edit Package</Button>
-                    </Link>
-                    <Link
-                        v-if="package_.can.manage"
+                        Edit Package
+                    </Link></Button>
+                    <Button v-if="package_.can.manage" as-child><Link
                         :href="
                             route('repositories.packages.versions.create', [
                                 repository.slug,
@@ -54,8 +52,8 @@
                             ])
                         "
                     >
-                        <Button>Add Version</Button>
-                    </Link>
+                        Add Version
+                    </Link></Button>
                     <Button
                         v-if="package_.can.delete"
                         variant="destructive"
@@ -126,12 +124,11 @@
                                     >{{ formatDate(v.created_at) }}</TableCell
                                 >
                                 <TableCell>
-                                    <Link
-                                        v-if="package_.can.manage"
+                                    <Button v-if="package_.can.manage" variant="ghost" size="sm" as-child><Link
                                         :href="route('repositories.packages.versions.edit', [repository.slug, package_.id, v.id])"
                                     >
-                                        <Button variant="ghost" size="sm">Edit</Button>
-                                    </Link>
+                                        Edit
+                                    </Link></Button>
                                     <Button
                                         v-if="package_.can.manage"
                                         variant="ghost"
@@ -164,7 +161,7 @@
                             <strong>{{ package_.full_name }}</strong> and its
                             zip file.
                         </DialogDescription>
-                        <p v-if="archiveError" class="text-sm text-destructive">
+                        <p v-if="archiveError" role="alert" class="text-sm text-destructive">
                             {{ archiveError }}
                         </p>
                     </DialogHeader>
@@ -174,8 +171,8 @@
                             @click="showDeleteVersionDialog = false"
                             >Cancel</Button
                         >
-                        <Button variant="destructive" @click="deleteVersion"
-                            >Delete</Button
+                        <Button variant="destructive" :disabled="deleting" :aria-busy="deleting" @click="deleteVersion"
+                            >{{ deleting ? 'Deleting…' : 'Delete' }}</Button
                         >
                     </DialogFooter>
                 </DialogContent>
@@ -191,7 +188,7 @@
                             <strong>{{ package_.full_name }}</strong> and all
                             its versions.
                         </DialogDescription>
-                        <p v-if="archiveError" class="text-sm text-destructive">
+                        <p v-if="archiveError" role="alert" class="text-sm text-destructive">
                             {{ archiveError }}
                         </p>
                     </DialogHeader>
@@ -201,8 +198,8 @@
                             @click="showDeleteDialog = false"
                             >Cancel</Button
                         >
-                        <Button variant="destructive" @click="deletePackage"
-                            >Delete</Button
+                        <Button variant="destructive" :disabled="deleting" :aria-busy="deleting" @click="deletePackage"
+                            >{{ deleting ? 'Deleting…' : 'Delete' }}</Button
                         >
                     </DialogFooter>
                 </DialogContent>
@@ -247,6 +244,7 @@ const showDeleteDialog = ref(false);
 const showDeleteVersionDialog = ref(false);
 const selectedVersion = ref(null);
 const archiveError = ref(null);
+const deleting = ref(false);
 
 function formatDate(date) {
     return new Date(date).toLocaleDateString();
@@ -259,6 +257,8 @@ function confirmDeleteVersion(v) {
 }
 
 function deleteVersion() {
+    if (deleting.value) return;
+    deleting.value = true;
     router.delete(
         route("repositories.packages.versions.destroy", [
             props.repository.slug,
@@ -268,11 +268,14 @@ function deleteVersion() {
         {
             onError: (errors) => (archiveError.value = errors.archive),
             onSuccess: () => (showDeleteVersionDialog.value = false),
+            onFinish: () => (deleting.value = false),
         },
     );
 }
 
 function deletePackage() {
+    if (deleting.value) return;
+    deleting.value = true;
     archiveError.value = null;
     router.delete(
         route("repositories.packages.destroy", [
@@ -281,6 +284,7 @@ function deletePackage() {
         ]),
         {
             onError: (errors) => (archiveError.value = errors.archive),
+            onFinish: () => (deleting.value = false),
         },
     );
 }

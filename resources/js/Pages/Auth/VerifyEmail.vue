@@ -33,10 +33,9 @@ const verificationLinkSent = computed(
 
         <div
             class="mb-4 text-sm font-medium text-green-600"
-            v-if="verificationLinkSent"
+            role="status"
         >
-            A new verification link has been sent to the email address you
-            provided during registration.
+            {{ verificationLinkSent ? 'A new verification link has been sent to the email address you provided during registration.' : '' }}
         </div>
 
         <form @submit.prevent="submit">

@@ -13,32 +13,32 @@
       <form @submit.prevent="submit" class="space-y-4">
         <div class="space-y-2">
           <Label for="version">Version</Label>
-          <Input id="version" v-model="form.version" placeholder="1.0.0" :class="{ 'border-destructive': form.errors.version }" />
-          <p v-if="form.errors.version" class="text-sm text-destructive">{{ form.errors.version }}</p>
+          <Input id="version" v-model="form.version" placeholder="1.0.0" :aria-invalid="!!form.errors.version" :aria-describedby="form.errors.version ? 'version-error' : undefined" />
+          <p v-if="form.errors.version" id="version-error" role="alert" class="text-sm text-destructive">{{ form.errors.version }}</p>
           <p class="text-xs text-muted-foreground">Composer-compatible format: 1.0.0, v2.1.0-beta, dev-main, etc.</p>
         </div>
 
         <div class="space-y-2">
           <Label for="type">Type</Label>
           <Select v-model="form.type">
-            <SelectTrigger id="type"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="type" :aria-invalid="!!form.errors.type" :aria-describedby="form.errors.type ? 'type-error' : undefined"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="type in types" :key="type" :value="type">{{ type }}</SelectItem>
             </SelectContent>
           </Select>
-          <p v-if="form.errors.type" class="text-sm text-destructive">{{ form.errors.type }}</p>
+          <p v-if="form.errors.type" id="type-error" role="alert" class="text-sm text-destructive">{{ form.errors.type }}</p>
         </div>
 
         <div class="space-y-2">
           <Label for="description">Description <span class="text-muted-foreground font-normal">(optional)</span></Label>
-          <Textarea id="description" v-model="form.description" rows="3" />
-          <p v-if="form.errors.description" class="text-sm text-destructive">{{ form.errors.description }}</p>
+          <Textarea id="description" v-model="form.description" rows="3" :aria-invalid="!!form.errors.description" :aria-describedby="form.errors.description ? 'description-error' : undefined" />
+          <p v-if="form.errors.description" id="description-error" role="alert" class="text-sm text-destructive">{{ form.errors.description }}</p>
         </div>
 
         <div class="space-y-2">
           <Label for="extra">Custom Composer metadata <span class="text-muted-foreground font-normal">(optional)</span></Label>
-          <Textarea id="extra" v-model="form.extra" rows="6" class="font-mono" :class="{ 'border-destructive': form.errors.extra }" placeholder='{"require":{"php":"^8.3"},"autoload":{"psr-4":{"Acme\\":"src/"}}}' />
-          <p v-if="form.errors.extra" class="text-sm text-destructive">{{ form.errors.extra }}</p>
+          <Textarea id="extra" v-model="form.extra" rows="6" class="font-mono" :aria-invalid="!!form.errors.extra" :aria-describedby="form.errors.extra ? 'extra-error' : undefined" placeholder='{"require":{"php":"^8.3"},"autoload":{"psr-4":{"Acme\\":"src/"}}}' />
+          <p v-if="form.errors.extra" id="extra-error" role="alert" class="text-sm text-destructive">{{ form.errors.extra }}</p>
           <p class="text-xs text-muted-foreground">JSON object, max 16 KiB. Leave blank to clear metadata. Supported keys: {{ metadataKeys.join(', ') }}. Package identity, type, and distribution are managed automatically.</p>
         </div>
 
@@ -48,9 +48,7 @@
           <Button type="submit" :disabled="form.processing">
             {{ form.processing ? 'Saving...' : 'Save Changes' }}
           </Button>
-          <Link :href="route('repositories.packages.show', [repository.slug, package_.id])">
-            <Button type="button" variant="outline">Cancel</Button>
-          </Link>
+          <Button variant="outline" as-child><Link :href="route('repositories.packages.show', [repository.slug, package_.id])">Cancel</Link></Button>
         </div>
       </form>
     </div>

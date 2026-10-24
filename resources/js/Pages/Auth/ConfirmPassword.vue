@@ -31,6 +31,8 @@ const submit = () => {
                 <InputLabel for="password" value="Password" />
                 <TextInput
                     id="password"
+                    :aria-invalid="!!form.errors.password"
+                    :aria-describedby="form.errors.password ? 'password-error' : undefined"
                     type="password"
                     class="mt-1 block w-full"
                     v-model="form.password"
@@ -38,7 +40,7 @@ const submit = () => {
                     autocomplete="current-password"
                     autofocus
                 />
-                <InputError class="mt-2" :message="form.errors.password" />
+                <InputError id="password-error" class="mt-2" :message="form.errors.password" />
             </div>
 
             <div class="mt-4 flex justify-end">

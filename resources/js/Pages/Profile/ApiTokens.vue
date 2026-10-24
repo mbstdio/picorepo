@@ -12,11 +12,14 @@
           <CardTitle class="text-base">Create Token</CardTitle>
         </CardHeader>
         <CardContent class="space-y-3">
-          <div class="flex gap-3">
-            <Input v-model="form.name" placeholder="Token name (e.g. My laptop)" class="flex-1" :class="{ 'border-destructive': form.errors.name }" />
-            <Button @click="createToken" :disabled="form.processing">Create</Button>
-          </div>
-          <p v-if="form.errors.name" class="text-sm text-destructive">{{ form.errors.name }}</p>
+          <form @submit.prevent="createToken" class="space-y-2">
+            <Label for="token-name">Token name</Label>
+            <div class="flex gap-3">
+              <Input id="token-name" v-model="form.name" placeholder="e.g. My laptop" class="flex-1" :aria-invalid="!!form.errors.name" :aria-describedby="form.errors.name ? 'token-name-error' : undefined" />
+              <Button type="submit" :disabled="form.processing">{{ form.processing ? 'Creating…' : 'Create' }}</Button>
+            </div>
+            <p v-if="form.errors.name" id="token-name-error" role="alert" class="text-sm text-destructive">{{ form.errors.name }}</p>
+          </form>
 
           <!-- Newly created token -->
           <Alert v-if="newToken" class="border-green-200 bg-green-50">
@@ -24,12 +27,13 @@
               <p class="font-medium text-green-800">Token created — copy it now, it won't be shown again.</p>
               <div class="relative">
                 <code class="block bg-white border rounded p-3 text-sm font-mono break-all">{{ newToken }}</code>
-                <Button variant="outline" size="sm" class="absolute top-2 right-2" @click="copyToken">
-                  {{ copied ? 'Copied!' : 'Copy' }}
+                <Button variant="outline" size="sm" class="absolute top-2 right-2" :disabled="copying" @click="copyToken">
+                  Copy
                 </Button>
               </div>
             </AlertDescription>
           </Alert>
+          <p role="status" class="text-sm">{{ copyStatus }}</p>
         </CardContent>
       </Card>
 
@@ -60,8 +64,10 @@
                     size="sm"
                     class="text-destructive hover:text-destructive"
                     @click="deleteToken(token)"
+                    :disabled="pending"
+                    :aria-label="`Revoke token ${token.name}`"
                   >
-                    Revoke
+                    {{ pending ? 'Working…' : 'Revoke' }}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -69,13 +75,17 @@
           </Table>
         </div>
         <ListPagination :page="tokens" />
+        <p role="status" class="text-sm">{{ actionStatus }}</p>
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import { useClipboard } from '@/composables/useClipboard'
+import { useConfirmedAction } from '@/composables/useConfirmedAction'
+import { Label } from '@/components/ui/label'
 import ListPagination from '@/components/ListPagination.vue'
 import { useForm, usePage, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -90,7 +100,8 @@ const props = defineProps({
 })
 
 const form = useForm({ name: '' })
-const copied = ref(false)
+const { status: copyStatus, copying, copy } = useClipboard()
+const { pending, status: actionStatus, run } = useConfirmedAction()
 
 const newToken = computed(() => usePage().props.flash?.token ?? null)
 
@@ -101,13 +112,13 @@ function createToken() {
 }
 
 function copyToken() {
-  navigator.clipboard.writeText(newToken.value)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 2000)
+  copy(newToken.value)
 }
 
 function deleteToken(token) {
-  router.delete(route('api-tokens.destroy', token.id))
+  run(`Revoke token "${token.name}"? Clients using it will lose access.`, options => {
+    router.delete(route('api-tokens.destroy', token.id), options)
+  })
 }
 
 function formatDate(date) {

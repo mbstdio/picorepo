@@ -30,6 +30,8 @@ const submit = () => {
 
                 <TextInput
                     id="name"
+                    :aria-invalid="!!form.errors.name"
+                    :aria-describedby="form.errors.name ? 'name-error' : undefined"
                     type="text"
                     class="mt-1 block w-full"
                     v-model="form.name"
@@ -38,7 +40,7 @@ const submit = () => {
                     autocomplete="name"
                 />
 
-                <InputError class="mt-2" :message="form.errors.name" />
+                <InputError id="name-error" class="mt-2" :message="form.errors.name" />
             </div>
 
             <div class="mt-4">
@@ -46,6 +48,8 @@ const submit = () => {
 
                 <TextInput
                     id="email"
+                    :aria-invalid="!!form.errors.email"
+                    :aria-describedby="form.errors.email ? 'email-error' : undefined"
                     type="email"
                     class="mt-1 block w-full"
                     v-model="form.email"
@@ -53,7 +57,7 @@ const submit = () => {
                     autocomplete="username"
                 />
 
-                <InputError class="mt-2" :message="form.errors.email" />
+                <InputError id="email-error" class="mt-2" :message="form.errors.email" />
             </div>
 
             <div class="mt-4">
@@ -61,6 +65,8 @@ const submit = () => {
 
                 <TextInput
                     id="password"
+                    :aria-invalid="!!form.errors.password"
+                    :aria-describedby="form.errors.password ? 'password-error' : undefined"
                     type="password"
                     class="mt-1 block w-full"
                     v-model="form.password"
@@ -68,7 +74,7 @@ const submit = () => {
                     autocomplete="new-password"
                 />
 
-                <InputError class="mt-2" :message="form.errors.password" />
+                <InputError id="password-error" class="mt-2" :message="form.errors.password" />
             </div>
 
             <div class="mt-4">
@@ -79,6 +85,8 @@ const submit = () => {
 
                 <TextInput
                     id="password_confirmation"
+                    :aria-invalid="!!form.errors.password_confirmation"
+                    :aria-describedby="form.errors.password_confirmation ? 'password-confirmation-error' : undefined"
                     type="password"
                     class="mt-1 block w-full"
                     v-model="form.password_confirmation"
@@ -87,6 +95,7 @@ const submit = () => {
                 />
 
                 <InputError
+                    id="password-confirmation-error"
                     class="mt-2"
                     :message="form.errors.password_confirmation"
                 />

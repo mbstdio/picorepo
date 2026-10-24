@@ -61,13 +61,13 @@
     </nav>
 
     <!-- Flash messages -->
-    <div v-if="$page.props.flash?.success" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <Alert class="border-green-200 bg-green-50 text-green-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Alert v-if="$page.props.flash?.success" role="presentation" class="mt-4 border-green-200 bg-green-50 text-green-800">
         <AlertDescription>{{ $page.props.flash.success }}</AlertDescription>
       </Alert>
     </div>
-    <div v-if="$page.props.flash?.error" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <Alert variant="destructive">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Alert v-if="$page.props.flash?.error" role="presentation" variant="destructive" class="mt-4">
         <AlertDescription>{{ $page.props.flash.error }}</AlertDescription>
       </Alert>
     </div>

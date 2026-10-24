@@ -46,9 +46,9 @@
 
                 <!-- Actions Edit / Delete -->
                 <div v-if="repository.can.update" class="flex gap-2 shrink-0">
-                    <Link :href="route('repositories.edit', repository.slug)">
-                        <Button variant="outline">Edit</Button>
-                    </Link>
+                    <Button variant="outline" as-child>
+                        <Link :href="route('repositories.edit', repository.slug)">Edit</Link>
+                    </Button>
                     <Button
                         v-if="repository.can.delete"
                         variant="destructive"
@@ -60,31 +60,22 @@
             </div>
 
             <!-- Tab navigation -->
-            <ButtonGroup>
-                <Button
-                    :variant="activeTab === 'packages' ? 'default' : 'outline'"
-                    @click="activeTab = 'packages'"
-                >
+            <Tabs v-model="activeTab">
+            <TabsList aria-label="Repository sections">
+                <TabsTrigger value="packages">
                     Packages ({{ repository.packages_count }})
-                </Button>
-                <Button
-                    v-if="repository.can.manage_access"
-                    :variant="activeTab === 'access' ? 'default' : 'outline'"
-                    @click="activeTab = 'access'"
-                >
+                </TabsTrigger>
+                <TabsTrigger v-if="repository.can.manage_access" value="access">
                     Access ({{ repository.users_count }})
-                </Button>
-                <Button
-                    :variant="activeTab === 'composer' ? 'default' : 'outline'"
-                    @click="activeTab = 'composer'"
-                >
+                </TabsTrigger>
+                <TabsTrigger value="composer">
                     Composer Config
-                </Button>
-            </ButtonGroup>
+                </TabsTrigger>
+            </TabsList>
 
             <div>
                 <!-- Packages tab -->
-                <div v-if="activeTab === 'packages'" class="space-y-4">
+                <TabsContent value="packages" class="space-y-4">
                     <!-- Sub-header with "Add Package" -->
                     <div class="flex items-center justify-between">
                         <p class="text-sm text-muted-foreground">
@@ -93,8 +84,7 @@
                             }}
                             in this repository
                         </p>
-                        <Link
-                            v-if="repository.can.manage_versions"
+                        <Button v-if="repository.can.manage_versions" as-child><Link
                             :href="
                                 route(
                                     'repositories.packages.create',
@@ -102,8 +92,8 @@
                                 )
                             "
                         >
-                            <Button>Add Package</Button>
-                        </Link>
+                            Add Package
+                        </Link></Button>
                     </div>
 
                     <div
@@ -191,19 +181,18 @@
                             </CardContent>
                         </Card>
                     </div>
-                </div>
-
-                <ListPagination v-if="activeTab === 'packages'" :page="repository.packages" />
+                <ListPagination :page="repository.packages" />
+                </TabsContent>
 
                 <!-- Access tab -->
-                <div v-if="activeTab === 'access'" class="space-y-4">
+                <TabsContent v-if="repository.can.manage_access" value="access" class="space-y-4">
                     <div class="flex items-center justify-between">
                         <p class="text-sm text-muted-foreground">
                             Showing {{ repository.users.length }} of {{ repository.users_count }} member{{
                                 repository.users_count !== 1 ? "s" : ""
                             }}
                         </p>
-                        <Link
+                        <Button size="sm" variant="outline" as-child><Link
                             :href="
                                 route(
                                     'repositories.users.index',
@@ -211,10 +200,8 @@
                                 )
                             "
                         >
-                            <Button size="sm" variant="outline"
-                                >Manage Access</Button
-                            >
-                        </Link>
+                            Manage Access
+                        </Link></Button>
                     </div>
                     <div class="border rounded-lg overflow-hidden">
                         <Table>
@@ -250,10 +237,10 @@
                             </TableBody>
                         </Table>
                     </div>
-                </div>
+                </TabsContent>
 
                 <!-- Composer config tab -->
-                <div v-if="activeTab === 'composer'" class="space-y-4">
+                <TabsContent value="composer" class="space-y-4">
                     <p class="text-sm text-muted-foreground">
                         Add the following to the
                         <code class="bg-muted px-1 py-0.5 rounded text-xs"
@@ -274,10 +261,12 @@
                             size="sm"
                             class="absolute top-2 right-2"
                             @click="copyConfig"
+                            :disabled="copying"
                         >
-                            {{ copied ? "Copied!" : "Copy" }}
+                            Copy
                         </Button>
                     </div>
+                    <p role="status" class="text-sm">{{ copyStatus }}</p>
                     <Alert v-if="repository.type === 'private'">
                         <AlertDescription>
                             This is a <strong>private</strong> repository. Users
@@ -298,8 +287,9 @@
                             >
                         </AlertDescription>
                     </Alert>
-                </div>
+                </TabsContent>
             </div>
+            </Tabs>
 
             <!-- Delete confirmation dialog -->
             <Dialog v-model:open="showDeleteDialog">
@@ -312,7 +302,7 @@
                             >? This will also delete all packages and versions.
                             This action cannot be undone.
                         </DialogDescription>
-                        <p v-if="archiveError" class="text-sm text-destructive">
+                        <p v-if="archiveError" role="alert" class="text-sm text-destructive">
                             {{ archiveError }}
                         </p>
                     </DialogHeader>
@@ -322,8 +312,8 @@
                             @click="showDeleteDialog = false"
                             >Cancel</Button
                         >
-                        <Button variant="destructive" @click="deleteRepository"
-                            >Delete</Button
+                        <Button variant="destructive" :disabled="deleting" :aria-busy="deleting" @click="deleteRepository"
+                            >{{ deleting ? 'Deleting…' : 'Delete' }}</Button
                         >
                     </DialogFooter>
                 </DialogContent>
@@ -338,7 +328,8 @@ import ListPagination from '@/components/ListPagination.vue';
 import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useClipboard } from '@/composables/useClipboard';
 import { Badge } from "@/components/ui/badge";
 import {
     Card,
@@ -371,7 +362,8 @@ const props = defineProps({
 
 const activeTab = ref("packages");
 const showDeleteDialog = ref(false);
-const copied = ref(false);
+const { status: copyStatus, copying, copy } = useClipboard();
+const deleting = ref(false);
 const archiveError = ref(null);
 
 const composerConfigJson = computed(() =>
@@ -392,9 +384,7 @@ const authJson = computed(() => {
 });
 
 function copyConfig() {
-    navigator.clipboard.writeText(composerConfigJson.value);
-    copied.value = true;
-    setTimeout(() => (copied.value = false), 2000);
+    copy(composerConfigJson.value);
 }
 
 function confirmDelete() {
@@ -403,8 +393,11 @@ function confirmDelete() {
 }
 
 function deleteRepository() {
+    if (deleting.value) return;
+    deleting.value = true;
     router.delete(route("repositories.destroy", props.repository.slug), {
         onError: (errors) => (archiveError.value = errors.archive),
+        onFinish: () => (deleting.value = false),
     });
 }
 </script>

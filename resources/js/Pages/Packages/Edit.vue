@@ -15,25 +15,23 @@
           <Label for="name">Package name</Label>
           <div class="flex items-center gap-2">
             <span class="text-muted-foreground text-sm font-mono">{{ repository.name }}/</span>
-            <Input id="name" v-model="form.name" :class="{ 'border-destructive': form.errors.name }" />
+            <Input id="name" v-model="form.name" :aria-invalid="!!form.errors.name" :aria-describedby="form.errors.name ? 'name-error' : undefined" />
           </div>
-          <p v-if="form.errors.name" class="text-sm text-destructive">{{ form.errors.name }}</p>
+          <p v-if="form.errors.name" id="name-error" role="alert" class="text-sm text-destructive">{{ form.errors.name }}</p>
           <p class="text-xs text-muted-foreground">Composer package: <code class="bg-muted px-1 rounded">{{ repository.name }}/{{ form.name }}</code></p>
         </div>
 
         <div class="space-y-2">
           <Label for="description">Description <span class="text-muted-foreground font-normal">(optional)</span></Label>
-          <Textarea id="description" v-model="form.description" rows="3" />
-          <p v-if="form.errors.description" class="text-sm text-destructive">{{ form.errors.description }}</p>
+          <Textarea id="description" v-model="form.description" rows="3" :aria-invalid="!!form.errors.description" :aria-describedby="form.errors.description ? 'description-error' : undefined" />
+          <p v-if="form.errors.description" id="description-error" role="alert" class="text-sm text-destructive">{{ form.errors.description }}</p>
         </div>
 
         <div class="flex gap-3 pt-2">
           <Button type="submit" :disabled="form.processing">
             {{ form.processing ? 'Saving...' : 'Save Changes' }}
           </Button>
-          <Link :href="route('repositories.packages.show', [repository.slug, package.id])">
-            <Button type="button" variant="outline">Cancel</Button>
-          </Link>
+          <Button variant="outline" as-child><Link :href="route('repositories.packages.show', [repository.slug, package.id])">Cancel</Link></Button>
         </div>
       </form>
     </div>

@@ -13,15 +13,15 @@
       <form @submit.prevent="submit" class="space-y-4">
         <div class="space-y-2">
           <Label for="name">Vendor name</Label>
-          <Input id="name" v-model="form.name" placeholder="e.g. acme" :class="{ 'border-destructive': form.errors.name }" />
-          <p v-if="form.errors.name" class="text-sm text-destructive">{{ form.errors.name }}</p>
+          <Input id="name" v-model="form.name" placeholder="e.g. acme" :aria-invalid="!!form.errors.name" :aria-describedby="form.errors.name ? 'name-error' : undefined" />
+          <p v-if="form.errors.name" id="name-error" role="alert" class="text-sm text-destructive">{{ form.errors.name }}</p>
           <p class="text-xs text-muted-foreground">Lowercase letters, numbers, hyphens and underscores only.</p>
         </div>
 
         <div class="space-y-2">
           <Label for="type">Visibility</Label>
           <Select v-model="form.type">
-            <SelectTrigger id="type">
+            <SelectTrigger id="type" :aria-invalid="!!form.errors.type" :aria-describedby="form.errors.type ? 'type-error' : undefined">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -29,21 +29,20 @@
               <SelectItem value="private">Private — access controlled</SelectItem>
             </SelectContent>
           </Select>
-          <p v-if="form.errors.type" class="text-sm text-destructive">{{ form.errors.type }}</p>
+          <p v-if="form.errors.type" id="type-error" role="alert" class="text-sm text-destructive">{{ form.errors.type }}</p>
         </div>
 
         <div class="space-y-2">
           <Label for="description">Description <span class="text-muted-foreground font-normal">(optional)</span></Label>
-          <Textarea id="description" v-model="form.description" placeholder="Short description of this repository" rows="3" />
+          <Textarea id="description" v-model="form.description" placeholder="Short description of this repository" rows="3" :aria-invalid="!!form.errors.description" :aria-describedby="form.errors.description ? 'description-error' : undefined" />
+          <p v-if="form.errors.description" id="description-error" role="alert" class="text-sm text-destructive">{{ form.errors.description }}</p>
         </div>
 
         <div class="flex gap-3 pt-2">
           <Button type="submit" :disabled="form.processing">
             {{ form.processing ? 'Creating...' : 'Create Repository' }}
           </Button>
-          <Link :href="route('repositories.index')">
-            <Button type="button" variant="outline">Cancel</Button>
-          </Link>
+          <Button variant="outline" as-child><Link :href="route('repositories.index')">Cancel</Link></Button>
         </div>
       </form>
     </div>

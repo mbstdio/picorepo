@@ -32,7 +32,7 @@ const submit = () => {
         </div>
 
         <div
-            v-if="status"
+            role="status"
             class="mb-4 text-sm font-medium text-green-600"
         >
             {{ status }}
@@ -44,6 +44,8 @@ const submit = () => {
 
                 <TextInput
                     id="email"
+                    :aria-invalid="!!form.errors.email"
+                    :aria-describedby="form.errors.email ? 'email-error' : undefined"
                     type="email"
                     class="mt-1 block w-full"
                     v-model="form.email"
@@ -52,7 +54,7 @@ const submit = () => {
                     autocomplete="username"
                 />
 
-                <InputError class="mt-2" :message="form.errors.email" />
+                <InputError id="email-error" class="mt-2" :message="form.errors.email" />
             </div>
 
             <div class="mt-4 flex items-center justify-end">

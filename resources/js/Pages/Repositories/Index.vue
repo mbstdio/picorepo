@@ -6,9 +6,7 @@
           <h1 class="text-2xl font-bold">Repositories</h1>
           <p class="text-muted-foreground">Manage your Composer repositories</p>
         </div>
-        <Link :href="route('repositories.create')">
-          <Button>New Repository</Button>
-        </Link>
+        <Button as-child><Link :href="route('repositories.create')">New Repository</Link></Button>
       </div>
 
       <!-- Search -->
@@ -54,9 +52,7 @@
                 {{ formatDate(repo.created_at) }}
               </TableCell>
               <TableCell>
-                <Link :href="route('repositories.show', repo.slug)">
-                  <Button variant="ghost" size="sm">View</Button>
-                </Link>
+                <Button variant="ghost" size="sm" as-child><Link :href="route('repositories.show', repo.slug)">View</Link></Button>
               </TableCell>
             </TableRow>
           </TableBody>

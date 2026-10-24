@@ -17,10 +17,11 @@
         </DialogHeader>
 
         <form class="space-y-4" @submit.prevent="deleteUser">
+          <p v-if="form.errors.account" role="alert" class="text-sm text-destructive">{{ form.errors.account }}</p>
           <div class="space-y-2">
-            <Label for="password">Password</Label>
-            <Input id="password" ref="passwordInput" v-model="form.password" type="password" autocomplete="current-password" :class="{ 'border-destructive': form.errors.password }" />
-            <p v-if="form.errors.password" class="text-sm text-destructive">{{ form.errors.password }}</p>
+            <Label for="delete-password">Password</Label>
+            <Input id="delete-password" ref="passwordInput" v-model="form.password" type="password" autocomplete="current-password" :aria-invalid="!!form.errors.password" :aria-describedby="form.errors.password ? 'delete-password-error' : undefined" />
+            <p v-if="form.errors.password" id="delete-password-error" role="alert" class="text-sm text-destructive">{{ form.errors.password }}</p>
           </div>
 
           <DialogFooter>
