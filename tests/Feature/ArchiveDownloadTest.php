@@ -7,6 +7,8 @@ use App\Models\Repository;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToRetrieveMetadata;
+use Mockery;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Tests\TestCase;
 
@@ -117,6 +119,19 @@ class ArchiveDownloadTest extends TestCase
         $this->assertSame(33554432, $bytes);
         $this->assertSame(hash_final($expectedHash), hash_final($actualHash));
         $this->assertLessThan(8 * 1024 * 1024, memory_get_peak_usage(true) - $baseline);
+    }
+
+    public function test_an_archive_deleted_during_metadata_lookup_returns_not_found(): void
+    {
+        $version = $this->archive('s3');
+        $disk = Mockery::mock();
+        $disk->shouldReceive('exists')->once()->with($version->zip_path)->andReturnTrue();
+        $disk->shouldReceive('download')->once()->andThrow(
+            UnableToRetrieveMetadata::fileSize($version->zip_path)
+        );
+        Storage::shouldReceive('disk')->with('s3')->andReturn($disk);
+
+        $this->get(route('versions.download', $version))->assertNotFound();
     }
 
     public function test_download_filenames_are_sanitized_and_encoded(): void

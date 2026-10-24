@@ -6,6 +6,7 @@ use App\Models\PackageVersion;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\UnableToReadFile;
+use League\Flysystem\UnableToRetrieveMetadata;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DownloadController extends Controller
@@ -46,13 +47,12 @@ class DownloadController extends Controller
         $filename = "{$version->package->name}-{$version->version}.zip";
         $filename = preg_replace('/[\\\\\/\x00-\x1F\x7F]/', '_', $filename);
 
-        $response = $disk->download($version->zip_path, $filename, [
-            'Content-Type' => 'application/zip',
-        ]);
-
         try {
+            $response = $disk->download($version->zip_path, $filename, [
+                'Content-Type' => 'application/zip',
+            ]);
             $stream = $disk->readStream($version->zip_path);
-        } catch (UnableToReadFile) {
+        } catch (UnableToReadFile|UnableToRetrieveMetadata) {
             abort(404, 'File not found.');
         }
 
