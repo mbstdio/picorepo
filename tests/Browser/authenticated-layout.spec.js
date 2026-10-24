@@ -8,6 +8,49 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
 })
 
+test('page titles follow navigation, reloads, and browser history', async ({ page }) => {
+  const suffix = ' - PicoRepo'
+  await expect(page).toHaveTitle(`Dashboard${suffix}`)
+  await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Repositories', exact: true }).click()
+  await expect(page).toHaveTitle(`Repositories${suffix}`)
+  await page.reload()
+  await expect(page).toHaveTitle(`Repositories${suffix}`)
+  await page.goto('/profile')
+  await expect(page).toHaveTitle(`Profile${suffix}`)
+  await page.goto('/profile/api-tokens')
+  await expect(page).toHaveTitle(`API Tokens${suffix}`)
+  await page.goBack()
+  await expect(page).toHaveTitle(`Profile${suffix}`)
+})
+
+test('resource page titles identify the repository, package, and action', async ({ page }) => {
+  const suffix = (await page.title()).slice('Dashboard'.length)
+  await page.goto('/repositories/create')
+  await expect(page).toHaveTitle(`New Repository${suffix}`)
+  await page.getByLabel('Vendor name').fill('title-vendor')
+  await page.locator('button[type="submit"]').click()
+  await expect(page).toHaveURL(/\/repositories\/title-vendor$/)
+  await expect(page).toHaveTitle(`title-vendor${suffix}`)
+
+  for (const [path, title] of [
+    ['edit', 'Edit Repository - title-vendor'],
+    ['users', 'Access Management - title-vendor'],
+    ['packages/create', 'Add Package - title-vendor'],
+  ]) {
+    await page.goto(`/repositories/title-vendor/${path}`)
+    await expect(page).toHaveTitle(`${title}${suffix}`)
+  }
+  await page.getByLabel('Package name').fill('title-package')
+  await page.locator('button[type="submit"]').click()
+  await expect(page).toHaveURL(/\/packages\/\d+\/versions\/create$/)
+  await expect(page).toHaveTitle(`Add Version - title-vendor/title-package${suffix}`)
+  const packagePath = new URL(page.url()).pathname.replace('/versions/create', '')
+  await page.goto(packagePath)
+  await expect(page).toHaveTitle(`title-vendor/title-package${suffix}`)
+  await page.goto(`${packagePath}/edit`)
+  await expect(page).toHaveTitle(`Edit Package - title-vendor/title-package${suffix}`)
+})
+
 test('created API tokens use theme-aware surfaces in dark mode', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto('/profile/api-tokens')

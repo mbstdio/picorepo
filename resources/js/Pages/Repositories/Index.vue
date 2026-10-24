@@ -1,4 +1,5 @@
 <template>
+  <Head title="Repositories" />
   <AppLayout>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
@@ -66,7 +67,7 @@
 <script setup>
 import ListPagination from '@/components/ListPagination.vue'
 import RepositoryFilters from '@/components/RepositoryFilters.vue'
-import { Link } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

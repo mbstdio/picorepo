@@ -1,4 +1,5 @@
 <template>
+  <Head :title="`Access Management - ${repository.name}`" />
   <AppLayout>
     <div class="space-y-6">
       <div class="flex items-start justify-between">
@@ -82,7 +83,7 @@
 </template>
 
 <script setup>
-import { Link, useForm, router } from '@inertiajs/vue3'
+import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import { shallowRef } from 'vue'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import ListPagination from '@/components/ListPagination.vue'

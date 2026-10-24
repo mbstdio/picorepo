@@ -1,4 +1,5 @@
 <template>
+  <Head title="Dashboard" />
   <AppLayout>
     <div class="space-y-6">
       <div>
@@ -62,7 +63,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

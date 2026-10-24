@@ -1,4 +1,5 @@
 <template>
+    <Head :title="package_.full_name" />
     <AppLayout>
         <div class="space-y-6">
             <!-- Header -->
@@ -211,7 +212,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import ListPagination from '@/components/ListPagination.vue';
-import { Link, router } from "@inertiajs/vue3";
+import { Head, Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

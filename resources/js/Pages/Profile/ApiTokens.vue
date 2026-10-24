@@ -1,4 +1,5 @@
 <template>
+  <Head title="API Tokens" />
   <AppLayout>
     <div class="space-y-6 max-w-2xl">
       <div>
@@ -105,7 +106,7 @@ import { toast } from 'vue-sonner'
 import { useClipboard } from '@/composables/useClipboard'
 import { Label } from '@/components/ui/label'
 import ListPagination from '@/components/ListPagination.vue'
-import { useForm, usePage, router } from '@inertiajs/vue3'
+import { Head, useForm, usePage, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

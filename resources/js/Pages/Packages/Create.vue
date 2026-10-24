@@ -1,4 +1,5 @@
 <template>
+  <Head :title="`Add Package - ${repository.name}`" />
   <AppLayout>
     <div class="max-w-lg space-y-6">
       <div>
@@ -39,7 +40,7 @@
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
