@@ -8,6 +8,33 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
 })
 
+test('created API tokens use theme-aware surfaces in dark mode', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/profile/api-tokens')
+  await page.getByLabel('Token name').fill('Dark mode laptop')
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
+  const alert = page.getByRole('alert').filter({ hasText: 'Token created — copy it now' })
+  await expect(alert).toBeVisible()
+  const background = await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor)
+  await expect(alert).toHaveCSS('background-color', background)
+  const foreground = await page.locator('body').evaluate(el => getComputedStyle(el).color)
+  await expect(alert.locator('code')).toHaveCSS('color', foreground)
+  await expect(alert.locator('code')).not.toHaveCSS('background-color', 'rgb(255, 255, 255)')
+})
+
+test('revoking API tokens reports success only through a toast', async ({ page }) => {
+  await page.goto('/profile/api-tokens')
+  await page.getByLabel('Token name').fill('Revoke laptop')
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
+  const revoke = page.getByRole('button', { name: 'Revoke token Revoke laptop', exact: true })
+  await expect(revoke).toBeVisible()
+  page.once('dialog', dialog => dialog.accept())
+  await revoke.click()
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Token deleted.' })).toBeVisible()
+  await expect(revoke).toHaveCount(0)
+  await expect(page.getByRole('status').filter({ hasText: 'Changes saved.' })).toHaveCount(0)
+})
+
 test('mobile users can navigate every application section and log out', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 })
   const trigger = page.getByRole('button', { name: 'Navigation and account menu', includeHidden: true })

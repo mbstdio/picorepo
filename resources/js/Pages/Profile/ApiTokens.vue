@@ -22,11 +22,11 @@
           </form>
 
           <!-- Newly created token -->
-          <Alert v-if="newToken" class="border-green-200 bg-green-50">
+          <Alert v-if="newToken" class="bg-background">
             <AlertDescription class="space-y-2">
-              <p class="font-medium text-green-800">Token created — copy it now, it won't be shown again.</p>
+              <p class="font-medium text-foreground">Token created — copy it now, it won't be shown again.</p>
               <div class="relative">
-                <code class="block bg-white border rounded p-3 text-sm font-mono break-all">{{ newToken }}</code>
+                <code class="block bg-muted text-foreground border rounded p-3 pr-20 text-sm font-mono break-all">{{ newToken }}</code>
                 <Button variant="outline" size="sm" class="absolute top-2 right-2" :disabled="copying" @click="copyToken">
                   Copy
                 </Button>
@@ -75,7 +75,6 @@
           </Table>
         </div>
         <ListPagination :page="tokens" />
-        <p role="status" class="text-sm">{{ actionStatus }}</p>
       </div>
     </div>
   </AppLayout>
@@ -83,6 +82,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { toast } from 'vue-sonner'
 import { useClipboard } from '@/composables/useClipboard'
 import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { Label } from '@/components/ui/label'
@@ -101,7 +101,7 @@ const props = defineProps({
 
 const form = useForm({ name: '' })
 const { status: copyStatus, copying, copy } = useClipboard()
-const { pending, status: actionStatus, run } = useConfirmedAction()
+const { pending, run } = useConfirmedAction()
 
 const newToken = computed(() => usePage().props.flash?.token ?? null)
 
@@ -117,7 +117,10 @@ function copyToken() {
 
 function deleteToken(token) {
   run(`Revoke token "${token.name}"? Clients using it will lose access.`, options => {
-    router.delete(route('api-tokens.destroy', token.id), options)
+    router.delete(route('api-tokens.destroy', token.id), {
+      ...options,
+      onError: errors => toast.error(Object.values(errors).join(' ') || 'Could not save changes.', { duration: Infinity }),
+    })
   })
 }
 
