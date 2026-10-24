@@ -65,14 +65,14 @@
                     :variant="activeTab === 'packages' ? 'default' : 'outline'"
                     @click="activeTab = 'packages'"
                 >
-                    Packages ({{ repository.packages.length }})
+                    Packages ({{ repository.packages_count }})
                 </Button>
                 <Button
                     v-if="repository.can.manage_access"
                     :variant="activeTab === 'access' ? 'default' : 'outline'"
                     @click="activeTab = 'access'"
                 >
-                    Access ({{ repository.users.length }})
+                    Access ({{ repository.users_count }})
                 </Button>
                 <Button
                     :variant="activeTab === 'composer' ? 'default' : 'outline'"
@@ -88,8 +88,8 @@
                     <!-- Sub-header with "Add Package" -->
                     <div class="flex items-center justify-between">
                         <p class="text-sm text-muted-foreground">
-                            {{ repository.packages.length }} package{{
-                                repository.packages.length !== 1 ? "s" : ""
+                            {{ repository.packages_count }} package{{
+                                repository.packages_count !== 1 ? "s" : ""
                             }}
                             in this repository
                         </p>
@@ -107,7 +107,7 @@
                     </div>
 
                     <div
-                        v-if="repository.packages.length === 0"
+                        v-if="repository.packages.data.length === 0"
                         class="text-center py-12 text-muted-foreground border rounded-lg"
                     >
                         No packages yet.
@@ -127,7 +127,7 @@
 
                     <div v-else class="space-y-3">
                         <Card
-                            v-for="pkg in repository.packages"
+                            v-for="pkg in repository.packages.data"
                             :key="pkg.id"
                             class="hover:bg-accent/30 transition-colors"
                         >
@@ -162,8 +162,8 @@
                                         variant="outline"
                                         class="shrink-0 ml-4"
                                     >
-                                        {{ pkg.versions.length }} version{{
-                                            pkg.versions.length !== 1 ? "s" : ""
+                                        {{ pkg.versions_count }} version{{
+                                            pkg.versions_count !== 1 ? "s" : ""
                                         }}
                                     </Badge>
                                 </div>
@@ -174,7 +174,7 @@
                             >
                                 <div class="flex flex-wrap gap-2">
                                     <Badge
-                                        v-for="v in pkg.versions.slice(0, 5)"
+                                        v-for="v in pkg.versions"
                                         :key="v.id"
                                         variant="secondary"
                                         class="font-mono text-xs"
@@ -182,10 +182,10 @@
                                         {{ v.version }}
                                     </Badge>
                                     <span
-                                        v-if="pkg.versions.length > 5"
+                                        v-if="pkg.versions_count > 5"
                                         class="text-xs text-muted-foreground self-center"
                                     >
-                                        +{{ pkg.versions.length - 5 }} more
+                                        +{{ pkg.versions_count - 5 }} more
                                     </span>
                                 </div>
                             </CardContent>
@@ -193,12 +193,14 @@
                     </div>
                 </div>
 
+                <ListPagination v-if="activeTab === 'packages'" :page="repository.packages" />
+
                 <!-- Access tab -->
                 <div v-if="activeTab === 'access'" class="space-y-4">
                     <div class="flex items-center justify-between">
                         <p class="text-sm text-muted-foreground">
-                            {{ repository.users.length }} member{{
-                                repository.users.length !== 1 ? "s" : ""
+                            Showing {{ repository.users.length }} of {{ repository.users_count }} member{{
+                                repository.users_count !== 1 ? "s" : ""
                             }}
                         </p>
                         <Link
@@ -332,6 +334,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import ListPagination from '@/components/ListPagination.vue';
 import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { Button } from "@/components/ui/button";

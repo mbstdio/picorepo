@@ -16,7 +16,7 @@ class RepositoryUserController extends Controller
     {
         $this->authorize('manageAccess', $repository);
 
-        $users = $repository->users()->get()->map(fn ($u) => [
+        $users = $repository->users()->orderBy('users.id')->paginate(20)->withQueryString()->through(fn ($u) => [
             'id' => $u->id,
             'name' => $u->name,
             'email' => $u->email,

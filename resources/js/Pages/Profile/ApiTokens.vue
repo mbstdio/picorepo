@@ -36,7 +36,7 @@
       <!-- Token list -->
       <div>
         <h2 class="text-base font-semibold mb-3">Active Tokens</h2>
-        <div v-if="tokens.length === 0" class="text-center py-8 text-muted-foreground border rounded-lg text-sm">
+        <div v-if="tokens.data.length === 0" class="text-center py-8 text-muted-foreground border rounded-lg text-sm">
           No tokens yet.
         </div>
         <div v-else class="border rounded-lg overflow-hidden">
@@ -50,7 +50,7 @@
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="token in tokens" :key="token.id">
+              <TableRow v-for="token in tokens.data" :key="token.id">
                 <TableCell class="font-medium">{{ token.name }}</TableCell>
                 <TableCell class="text-muted-foreground text-sm">{{ token.last_used ? formatDate(token.last_used) : 'Never' }}</TableCell>
                 <TableCell class="text-muted-foreground text-sm">{{ formatDate(token.created_at) }}</TableCell>
@@ -68,6 +68,7 @@
             </TableBody>
           </Table>
         </div>
+        <ListPagination :page="tokens" />
       </div>
     </div>
   </AppLayout>
@@ -75,6 +76,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import ListPagination from '@/components/ListPagination.vue'
 import { useForm, usePage, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
@@ -84,7 +86,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const props = defineProps({
-  tokens: Array,
+  tokens: Object,
 })
 
 const form = useForm({ name: '' })

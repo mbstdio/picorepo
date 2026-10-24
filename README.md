@@ -180,6 +180,14 @@ Pico Repo controls `name`, `version`, `version_normalized`, `type`, and `dist`; 
 
 Existing invalid metadata is displayed as its stored JSON text on the Edit Version form so it can be corrected. Leave the field blank to clear it, or use `{}` for an empty object. Invalid legacy scalar/list metadata and unsupported legacy keys are ignored in Composer responses. Nested JSON objects and lists retain their shapes when stored and served.
 
+### List and metadata scaling
+
+Web lists are paginated at 20 entries. Repository search and visibility filters run on the server and are retained when paging. Repository summaries include total package/member counts, five member previews, and five recently published versions per displayed package. Web version lists show newest-published entries first; Composer metadata retains semantic-version ordering.
+
+Composer JSON responses use the configured Laravel cache store for five minutes. Package/version model saves and deletes change a repository revision in the same database transaction, invalidating all its metadata variants without a cache-wide flush. Revisions are unique so rolled-back writes cannot poison a later cache fill. Repository name/slug and URL changes also produce distinct cache keys. Authorization is checked on every request, including cache hits. External archive changes are reflected when the cache expires; downloads always check current access and archive availability.
+
+Use Eloquent model writes for package/version changes: bulk SQL updates bypass model events and therefore cache invalidation. Each endpoint reuses a stable cache entry containing its revision, so repeated edits do not accumulate obsolete revision entries. For large installations, prefer Redis or another cache store that automatically removes expired entries.
+
 ## Development
 
 `composer run dev` starts all local services together. To run them separately:

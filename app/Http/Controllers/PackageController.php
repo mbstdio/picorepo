@@ -46,7 +46,10 @@ class PackageController extends Controller
     {
         $this->authorize('view', $repository);
 
-        $package->load('versions');
+        $package->setRelation('repository', $repository);
+        $versions = $package->versions()
+            ->select('id', 'package_id', 'version', 'type', 'disk', 'description', 'created_at')
+            ->latest()->orderByDesc('id')->paginate(20)->withQueryString();
 
         return Inertia::render('Packages/Show', [
             'repository' => $repository,
@@ -55,7 +58,7 @@ class PackageController extends Controller
                 'name' => $package->name,
                 'full_name' => $package->fullName(),
                 'description' => $package->description,
-                'versions' => $package->sortedVersions()->map(fn ($v) => [
+                'versions' => $versions->through(fn ($v) => [
                     'id' => $v->id,
                     'version' => $v->version,
                     'type' => $v->type,

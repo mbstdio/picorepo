@@ -45,7 +45,7 @@
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="user in users" :key="user.id">
+            <TableRow v-for="user in users.data" :key="user.id">
               <TableCell class="font-medium">{{ user.name }}</TableCell>
               <TableCell class="text-muted-foreground">{{ user.email }}</TableCell>
               <TableCell>
@@ -72,12 +72,14 @@
           </TableBody>
         </Table>
       </div>
+      <ListPagination :page="users" />
     </div>
   </AppLayout>
 </template>
 
 <script setup>
 import { Link, useForm, router } from '@inertiajs/vue3'
+import ListPagination from '@/components/ListPagination.vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,7 +89,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const props = defineProps({
   repository: Object,
-  users: Array,
+  users: Object,
 })
 
 const inviteForm = useForm({

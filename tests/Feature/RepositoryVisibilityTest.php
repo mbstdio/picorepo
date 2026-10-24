@@ -22,7 +22,7 @@ class RepositoryVisibilityTest extends TestCase
 
         $this->get(route('repositories.index'), $this->inertiaHeaders())
             ->assertOk()
-            ->assertJsonCount(1, 'props.repositories')
+            ->assertJsonCount(1, 'props.repositories.data')
             ->assertJsonFragment(['id' => $public->id]);
 
         $this->get(route('repositories.show', $public), $this->inertiaHeaders())
@@ -45,7 +45,7 @@ class RepositoryVisibilityTest extends TestCase
         $this->actingAs($unrelatedUser)
             ->get(route('repositories.index'), $this->inertiaHeaders())
             ->assertOk()
-            ->assertJsonCount(1, 'props.repositories')
+            ->assertJsonCount(1, 'props.repositories.data')
             ->assertJsonFragment(['id' => $public->id]);
 
         $this->actingAs($unrelatedUser)
@@ -72,7 +72,7 @@ class RepositoryVisibilityTest extends TestCase
         $this->actingAs($maintainer)
             ->get(route('repositories.index'), $this->inertiaHeaders())
             ->assertOk()
-            ->assertJsonCount(2, 'props.repositories')
+            ->assertJsonCount(2, 'props.repositories.data')
             ->assertJsonFragment(['id' => $private->id])
             ->assertJsonFragment(['id' => $public->id]);
 
@@ -101,7 +101,7 @@ class RepositoryVisibilityTest extends TestCase
         $this->actingAs($owner)
             ->get(route('repositories.index'), $this->inertiaHeaders())
             ->assertOk()
-            ->assertJsonCount(2, 'props.repositories')
+            ->assertJsonCount(2, 'props.repositories.data')
             ->assertJsonFragment(['id' => $private->id])
             ->assertJsonFragment(['id' => $public->id]);
 

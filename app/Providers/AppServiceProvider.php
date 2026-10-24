@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Package;
+use App\Models\PackageVersion;
+use App\Observers\ComposerMetadataObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -23,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Package::observe(ComposerMetadataObserver::class);
+        PackageVersion::observe(ComposerMetadataObserver::class);
+
         RateLimiter::for('registration', fn (Request $request) => Limit::perMinute(config('registration.max_attempts'))
             ->by($request->ip()));
 

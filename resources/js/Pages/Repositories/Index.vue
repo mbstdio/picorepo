@@ -12,22 +12,10 @@
       </div>
 
       <!-- Search -->
-      <div class="flex gap-3">
-        <Input v-model="search" placeholder="Search repositories..." class="max-w-sm" />
-        <Select v-model="typeFilter">
-          <SelectTrigger class="w-36">
-            <SelectValue placeholder="All types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            <SelectItem value="public">Public</SelectItem>
-            <SelectItem value="private">Private</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <RepositoryFilters :filters="filters" />
 
       <!-- Empty state -->
-      <div v-if="filteredRepositories.length === 0" class="text-center py-16 text-muted-foreground border rounded-lg">
+      <div v-if="repositories.data.length === 0" class="text-center py-16 text-muted-foreground border rounded-lg">
         <p class="text-lg font-medium">No repositories found</p>
         <p class="text-sm mt-1">
           <Link :href="route('repositories.create')" class="text-primary hover:underline">Create your first repository</Link>
@@ -47,7 +35,7 @@
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="repo in filteredRepositories" :key="repo.id">
+            <TableRow v-for="repo in repositories.data" :key="repo.id">
               <TableCell>
                 <Link :href="route('repositories.show', repo.slug)" class="font-medium hover:underline">
                   {{ repo.name }}
@@ -74,33 +62,23 @@
           </TableBody>
         </Table>
       </div>
+      <ListPagination :page="repositories" />
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import ListPagination from '@/components/ListPagination.vue'
+import RepositoryFilters from '@/components/RepositoryFilters.vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const props = defineProps({
-  repositories: Array,
-})
-
-const search = ref('')
-const typeFilter = ref('all')
-
-const filteredRepositories = computed(() => {
-  return props.repositories.filter(r => {
-    const matchesSearch = !search.value || r.name.toLowerCase().includes(search.value.toLowerCase())
-    const matchesType = typeFilter.value === 'all' || r.type === typeFilter.value
-    return matchesSearch && matchesType
-  })
+  repositories: Object,
+  filters: Object,
 })
 
 function formatDate(date) {

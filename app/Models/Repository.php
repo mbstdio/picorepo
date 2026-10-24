@@ -32,7 +32,7 @@ class Repository extends Model
 
     public function packages(): HasMany
     {
-        return $this->hasMany(Package::class);
+        return $this->hasMany(Package::class)->chaperone();
     }
 
     public function users(): BelongsToMany
@@ -61,7 +61,7 @@ class Repository extends Model
     {
         return [
             'type' => 'composer',
-            'url'  => $this->composerUrl(),
+            'url' => $this->composerUrl(),
         ];
     }
 }

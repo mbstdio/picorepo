@@ -7,14 +7,19 @@ use App\Http\Requests\UpdateRepositoryRequest;
 use App\Models\Repository;
 use App\Services\ArchiveDeletionService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RepositoryController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'type' => ['nullable', 'in:all,public,private'],
+        ]);
         $repositories = Repository::query()
             ->where(function ($query) {
                 $query->where('type', 'public');
@@ -23,10 +28,14 @@ class RepositoryController extends Controller
                     $query->orWhereHas('users', fn ($users) => $users->whereKey($userId));
                 }
             })
+            ->when(isset($filters['search']) && $filters['search'] !== '', fn ($query) => $query->where('name', 'like', '%'.$filters['search'].'%'))
+            ->when(in_array($filters['type'] ?? 'all', ['public', 'private']), fn ($query) => $query->where('type', $filters['type']))
             ->withCount('packages')
             ->latest()
-            ->get()
-            ->map(fn ($repo) => [
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn ($repo) => [
                 'id' => $repo->id,
                 'name' => $repo->name,
                 'slug' => $repo->slug,
@@ -38,6 +47,7 @@ class RepositoryController extends Controller
 
         return Inertia::render('Repositories/Index', [
             'repositories' => $repositories,
+            'filters' => $filters,
         ]);
     }
 
@@ -66,10 +76,14 @@ class RepositoryController extends Controller
     {
         $this->authorize('view', $repository);
 
-        $repository->load([
-            'packages.versions',
-            'users',
-        ]);
+        $repository->loadCount(['packages', 'users']);
+        $packages = $repository->packages()
+            ->withCount('versions')
+            ->with(['versions' => fn ($versions) => $versions
+                ->select('id', 'package_id', 'version')->latest()->orderByDesc('id')->limit(5)])
+            ->latest()->orderByDesc('id')
+            ->paginate(20)->withQueryString();
+        $users = $repository->users()->orderBy('users.id')->limit(5)->get();
 
         $canViewCollaborators = auth()->user()?->hasAccessToRepository($repository) ?? false;
 
@@ -82,21 +96,20 @@ class RepositoryController extends Controller
                 'description' => $repository->description,
                 'composer_config' => $repository->composerConfig(),
                 'composer_url' => $repository->composerUrl(),
-                'packages' => $repository->packages->map(fn ($pkg) => [
+                'packages_count' => $repository->packages_count,
+                'users_count' => $repository->users_count,
+                'packages' => $packages->through(fn ($pkg) => [
                     'id' => $pkg->id,
                     'name' => $pkg->name,
                     'full_name' => $pkg->fullName(),
                     'description' => $pkg->description,
-                    'versions' => $pkg->sortedVersions()->map(fn ($v) => [
+                    'versions_count' => $pkg->versions_count,
+                    'versions' => $pkg->versions->map(fn ($v) => [
                         'id' => $v->id,
                         'version' => $v->version,
-                        'type' => $v->type,
-                        'disk' => $v->disk,
-                        'description' => $v->description,
-                        'created_at' => $v->created_at,
                     ]),
                 ]),
-                'users' => $repository->users->map(fn ($u) => array_filter([
+                'users' => $users->map(fn ($u) => array_filter([
                     'id' => $u->id,
                     'name' => $u->name,
                     'email' => $canViewCollaborators ? $u->email : null,

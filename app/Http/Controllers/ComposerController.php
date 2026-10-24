@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\PackageVersion;
 use App\Models\Repository;
 use App\Models\User;
+use Closure;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class ComposerController extends Controller
 {
@@ -19,27 +21,30 @@ class ComposerController extends Controller
 
         $this->authorizeComposerAccess($repository);
 
-        $packages = $repository->packages()
-            ->with('versions')
-            ->get();
-        $usableVersions = $packages->flatMap->versions
-            ->filter(fn (PackageVersion $version) => $version->hasUsableArchive());
-        $packageNames = $packages
-            ->filter(fn ($package) => $package->usableVersions()->isNotEmpty())
-            ->map(fn ($p) => $p->fullName())
-            ->values()
-            ->all();
+        return $this->cachedMetadata($repository, function () use ($repository, $repositorySlug) {
+            $packageNames = [];
+            $lastModified = null;
+            $packages = $repository->packages()->with(['versions' => fn ($versions) => $versions
+                ->select('id', 'package_id', 'disk', 'zip_path', 'updated_at')])->lazyById(100);
+            foreach ($packages as $package) {
+                $usableVersions = $package->versions->filter(fn (PackageVersion $version) => $version->hasUsableArchive());
+                if ($usableVersions->isNotEmpty()) {
+                    $packageNames[] = $package->fullName();
+                    $lastModified = max($lastModified, $usableVersions->max('updated_at'));
+                }
+            }
 
-        $metadata = [
-            'packages' => new \stdClass,
-            'metadata-url' => '/composer/'.$repositorySlug.'/p2/%package%.json',
-            'available-packages' => $packageNames,
-            'info' => 'Add to composer.json repositories: '.json_encode($repository->composerConfig()),
-        ];
+            $metadata = [
+                'packages' => new \stdClass,
+                'metadata-url' => '/composer/'.$repositorySlug.'/p2/%package%.json',
+                'available-packages' => $packageNames,
+                'info' => 'Add to composer.json repositories: '.json_encode($repository->composerConfig()),
+            ];
 
-        return response()->json($metadata)
-            ->setEtag(md5(json_encode($metadata)))
-            ->setLastModified($usableVersions->max('updated_at'));
+            return response()->json($metadata)
+                ->setEtag(md5(json_encode($metadata)))
+                ->setLastModified($lastModified);
+        });
     }
 
     /**
@@ -52,22 +57,24 @@ class ComposerController extends Controller
 
         $this->authorizeComposerAccess($repository);
 
-        $packages = [];
-        foreach ($repository->packages()->with('versions')->get() as $package) {
-            $fullName = $package->fullName();
-            $versions = [];
-            foreach ($package->usableVersions() as $version) {
-                $versions[$version->version] = $version->toComposerArray();
+        return $this->cachedMetadata($repository, function () use ($repository) {
+            $packages = [];
+            foreach ($repository->packages()->with('versions')->lazyById(100) as $package) {
+                $fullName = $package->fullName();
+                $versions = [];
+                foreach ($package->usableVersions() as $version) {
+                    $versions[$version->version] = $version->toComposerArray();
+                }
+                if (! empty($versions)) {
+                    $packages[$fullName] = $versions;
+                }
             }
-            if (! empty($versions)) {
-                $packages[$fullName] = $versions;
-            }
-        }
 
-        return response()->json([
-            'packages' => $packages,
-            'minified' => false,
-        ]);
+            return response()->json([
+                'packages' => $packages,
+                'minified' => false,
+            ]);
+        });
     }
 
     /**
@@ -89,22 +96,24 @@ class ComposerController extends Controller
 
         [, $name] = explode('/', $fullName, 2);
 
-        $package = $repository->packages()
-            ->where('name', $name)
-            ->with('versions')
-            ->firstOrFail();
+        return $this->cachedMetadata($repository, function () use ($repository, $name, $fullName) {
+            $package = $repository->packages()
+                ->where('name', $name)
+                ->with('versions')
+                ->firstOrFail();
 
-        $versions = [];
-        foreach ($package->usableVersions() as $version) {
-            $versions[$version->version] = $version->toComposerArray();
-        }
+            $versions = [];
+            foreach ($package->usableVersions() as $version) {
+                $versions[$version->version] = $version->toComposerArray();
+            }
 
-        return response()->json([
-            'packages' => [
-                $fullName => $versions,
-            ],
-            'minified' => false,
-        ]);
+            return response()->json([
+                'packages' => [
+                    $fullName => $versions,
+                ],
+                'minified' => false,
+            ]);
+        });
     }
 
     /**
@@ -120,31 +129,59 @@ class ComposerController extends Controller
             abort(404);
         }
 
-        $isDevelopmentMetadata = str_ends_with($packageName, '~dev');
-        $packageName = $isDevelopmentMetadata ? substr($packageName, 0, -4) : $packageName;
-        $package = $repository->packages()
-            ->whereRaw('LOWER(name) = ?', [strtolower($packageName)])
-            ->with('versions')
-            ->firstOrFail();
-        $versions = $package->usableVersions()
-            ->filter(fn (PackageVersion $version) => str_starts_with($version->version, 'dev-') === $isDevelopmentMetadata)
-            ->map(fn (PackageVersion $version) => $version->toComposerArray())
-            ->values()
-            ->all();
+        return $this->cachedMetadata($repository, function () use ($repository, $packageName) {
+            $isDevelopmentMetadata = str_ends_with($packageName, '~dev');
+            $packageName = $isDevelopmentMetadata ? substr($packageName, 0, -4) : $packageName;
+            $package = $repository->packages()
+                ->whereRaw('LOWER(name) = ?', [strtolower($packageName)])
+                ->with('versions')
+                ->firstOrFail();
+            $versions = $package->usableVersions()
+                ->filter(fn (PackageVersion $version) => str_starts_with($version->version, 'dev-') === $isDevelopmentMetadata)
+                ->map(fn (PackageVersion $version) => $version->toComposerArray())
+                ->values()
+                ->all();
 
-        if ($versions === []) {
-            abort(404);
+            if ($versions === []) {
+                abort(404);
+            }
+
+            $metadata = [
+                'packages' => [
+                    $package->fullName() => $versions,
+                ],
+            ];
+
+            return response()->json($metadata)
+                ->setEtag(md5(json_encode($metadata)))
+                ->setLastModified($package->versions->max('updated_at'));
+        });
+    }
+
+    protected function cachedMetadata(Repository $repository, Closure $generate): JsonResponse
+    {
+        $key = 'composer:'.$repository->id.':'.hash('sha256',
+            url()->current().'|'.$repository->name.'|'.$repository->slug
+        );
+        $cached = Cache::get($key);
+        // Archive availability can change outside the app; recheck it at least every five minutes.
+        if (! $cached || $cached['revision'] !== $repository->metadata_revision) {
+            $response = $generate();
+            $cached = [
+                'revision' => $repository->metadata_revision,
+                'body' => $response->getContent(),
+                'etag' => md5($response->getContent()),
+                'last_modified' => $response->headers->get('Last-Modified'),
+            ];
+            Cache::put($key, $cached, 300);
         }
 
-        $metadata = [
-            'packages' => [
-                $package->fullName() => $versions,
-            ],
-        ];
+        $response = response()->json()->setContent($cached['body'])->setEtag($cached['etag']);
+        if ($cached['last_modified']) {
+            $response->headers->set('Last-Modified', $cached['last_modified']);
+        }
 
-        return response()->json($metadata)
-            ->setEtag(md5(json_encode($metadata)))
-            ->setLastModified($package->versions->max('updated_at'));
+        return $response;
     }
 
     protected function authorizeComposerAccess(Repository $repository): void

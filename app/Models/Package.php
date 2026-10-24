@@ -22,7 +22,7 @@ class Package extends Model
 
     public function versions(): HasMany
     {
-        return $this->hasMany(PackageVersion::class);
+        return $this->hasMany(PackageVersion::class)->chaperone();
     }
 
     /**

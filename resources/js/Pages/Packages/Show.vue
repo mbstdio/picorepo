@@ -67,9 +67,9 @@
 
             <!-- Versions -->
             <div>
-                <h2 class="text-lg font-semibold mb-3">Versions</h2>
+                <h2 class="text-lg font-semibold mb-3">Versions ({{ package_.versions.total }}) · newest published first</h2>
                 <div
-                    v-if="package_.versions.length === 0"
+                    v-if="package_.versions.data.length === 0"
                     class="text-center py-12 text-muted-foreground border rounded-lg"
                 >
                     No versions yet.
@@ -99,7 +99,7 @@
                         </TableHeader>
                         <TableBody>
                             <TableRow
-                                v-for="v in package_.versions"
+                                v-for="v in package_.versions.data"
                                 :key="v.id"
                             >
                                 <TableCell class="font-mono font-medium">{{
@@ -147,6 +147,8 @@
                     </Table>
                 </div>
             </div>
+
+            <ListPagination :page="package_.versions" />
 
             <!-- Delete version dialog -->
             <Dialog v-model:open="showDeleteVersionDialog">
@@ -210,7 +212,8 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import ListPagination from '@/components/ListPagination.vue';
 import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { Button } from "@/components/ui/button";
@@ -238,7 +241,7 @@ const props = defineProps({
 });
 
 // "package" is a reserved word in JS, alias it
-const package_ = props.package;
+const package_ = computed(() => props.package);
 
 const showDeleteDialog = ref(false);
 const showDeleteVersionDialog = ref(false);
@@ -259,7 +262,7 @@ function deleteVersion() {
     router.delete(
         route("repositories.packages.versions.destroy", [
             props.repository.slug,
-            package_.id,
+            package_.value.id,
             selectedVersion.value.id,
         ]),
         {
@@ -274,7 +277,7 @@ function deletePackage() {
     router.delete(
         route("repositories.packages.destroy", [
             props.repository.slug,
-            package_.id,
+            package_.value.id,
         ]),
         {
             onError: (errors) => (archiveError.value = errors.archive),
