@@ -6,6 +6,20 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        <script>
+            (() => {
+                let theme = 'auto';
+                try {
+                    theme = localStorage.getItem('theme') || 'auto';
+                } catch {
+                    // Keep the system preference when storage is unavailable.
+                }
+                document.documentElement.classList.toggle('dark',
+                    theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+                );
+            })();
+        </script>
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

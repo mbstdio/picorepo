@@ -26,32 +26,36 @@
             </div>
           </div>
 
-          <!-- User menu -->
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <Button variant="ghost" class="flex items-center gap-2">
-                <Avatar class="h-7 w-7">
-                  <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
-                </Avatar>
-                <span class="hidden md:block text-sm">{{ $page.props.auth.user.name }}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" class="w-48">
-              <DropdownMenuLabel>{{ $page.props.auth.user.email }}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="router.visit(route('profile.edit'))">
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="router.visit(route('api-tokens.index'))">
-                API Tokens
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="logout" class="text-destructive focus:text-destructive">
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div class="flex items-center gap-2">
+            <ThemeSelector />
+
+            <!-- User menu -->
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" class="flex items-center gap-2">
+                  <Avatar class="h-7 w-7">
+                    <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
+                  </Avatar>
+                  <span class="hidden md:block text-sm">{{ $page.props.auth.user.name }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-48">
+                <DropdownMenuLabel>{{ $page.props.auth.user.email }}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="router.visit(route('profile.edit'))">
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="router.visit(route('api-tokens.index'))">
+                  API Tokens
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="logout" class="text-destructive focus:text-destructive">
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </nav>
@@ -81,6 +85,7 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import ThemeSelector from '@/components/ThemeSelector.vue'
 import {
   DropdownMenu,
   DropdownMenuContent,
