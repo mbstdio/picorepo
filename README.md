@@ -205,6 +205,24 @@ Vite provides frontend hot module replacement while `npm run dev` is running. Bu
 npm run build
 ```
 
+The frontend uses Tailwind CSS 4 through its Vite plugin. Theme tokens, source
+paths, and the forms plugin live in `resources/css/app.css`; there is no separate
+Tailwind or PostCSS configuration. Generated shadcn-vue primitives use its shared
+state variants and `tw-animate-css` for animations. Keep `components.json`'s
+Tailwind config path empty when generating components.
+
+Run frontend checks against a fresh production build with:
+
+```bash
+npm test
+```
+
+For a keyboard smoke check with production assets, stop the Vite dev server, run
+`npm run build`, then serve Laravel. Tab through the login inputs and button and
+the repository search, visibility select, and theme selector. Check visible focus
+in both light and dark themes; open a select or menu with the keyboard, navigate
+its items with arrow keys, and dismiss with Escape.
+
 Run the test suite with:
 
 ```bash
