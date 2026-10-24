@@ -38,53 +38,71 @@
       </Card>
 
       <!-- Token list -->
-      <div>
-        <h2 class="text-base font-semibold mb-3">Active Tokens</h2>
-        <div v-if="tokens.data.length === 0" class="text-center py-8 text-muted-foreground border rounded-lg text-sm">
-          No tokens yet.
+      <Dialog v-model:open="showDeleteDialog">
+        <div>
+          <h2 class="text-base font-semibold mb-3">Active Tokens</h2>
+          <div v-if="tokens.data.length === 0" class="text-center py-8 text-muted-foreground border rounded-lg text-sm">
+            No tokens yet.
+          </div>
+          <div v-else class="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Last used</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead class="w-16"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="token in tokens.data" :key="token.id">
+                  <TableCell class="font-medium">{{ token.name }}</TableCell>
+                  <TableCell class="text-muted-foreground text-sm">{{ token.last_used ? formatDate(token.last_used) : 'Never' }}</TableCell>
+                  <TableCell class="text-muted-foreground text-sm">{{ formatDate(token.created_at) }}</TableCell>
+                  <TableCell>
+                    <DialogTrigger as-child>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="text-destructive hover:text-destructive"
+                        @click="selectedToken = token"
+                        :disabled="pending"
+                        :aria-label="`Revoke token ${token.name}`"
+                      >
+                        {{ pending ? 'Working…' : 'Revoke' }}
+                      </Button>
+                    </DialogTrigger>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+          <ListPagination :page="tokens" />
         </div>
-        <div v-else class="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Last used</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead class="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="token in tokens.data" :key="token.id">
-                <TableCell class="font-medium">{{ token.name }}</TableCell>
-                <TableCell class="text-muted-foreground text-sm">{{ token.last_used ? formatDate(token.last_used) : 'Never' }}</TableCell>
-                <TableCell class="text-muted-foreground text-sm">{{ formatDate(token.created_at) }}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="text-destructive hover:text-destructive"
-                    @click="deleteToken(token)"
-                    :disabled="pending"
-                    :aria-label="`Revoke token ${token.name}`"
-                  >
-                    {{ pending ? 'Working…' : 'Revoke' }}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-        <ListPagination :page="tokens" />
-      </div>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke Token</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to revoke <strong>{{ selectedToken?.name }}</strong>?
+              Clients using it will lose access. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" :disabled="pending" @click="showDeleteDialog = false">Cancel</Button>
+            <Button variant="destructive" :disabled="pending" :aria-busy="pending" @click="deleteToken">
+              {{ pending ? 'Revoking…' : 'Revoke' }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { toast } from 'vue-sonner'
 import { useClipboard } from '@/composables/useClipboard'
-import { useConfirmedAction } from '@/composables/useConfirmedAction'
 import { Label } from '@/components/ui/label'
 import ListPagination from '@/components/ListPagination.vue'
 import { useForm, usePage, router } from '@inertiajs/vue3'
@@ -94,6 +112,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 const props = defineProps({
   tokens: Object,
@@ -101,7 +120,9 @@ const props = defineProps({
 
 const form = useForm({ name: '' })
 const { status: copyStatus, copying, copy } = useClipboard()
-const { pending, run } = useConfirmedAction()
+const pending = shallowRef(false)
+const showDeleteDialog = shallowRef(false)
+const selectedToken = shallowRef(null)
 
 const newToken = computed(() => usePage().props.flash?.token ?? null)
 
@@ -115,12 +136,13 @@ function copyToken() {
   copy(newToken.value)
 }
 
-function deleteToken(token) {
-  run(`Revoke token "${token.name}"? Clients using it will lose access.`, options => {
-    router.delete(route('api-tokens.destroy', token.id), {
-      ...options,
-      onError: errors => toast.error(Object.values(errors).join(' ') || 'Could not save changes.', { duration: Infinity }),
-    })
+function deleteToken() {
+  if (pending.value || !selectedToken.value) return
+  pending.value = true
+  router.delete(route('api-tokens.destroy', selectedToken.value.id), {
+    onSuccess: () => { showDeleteDialog.value = false },
+    onError: errors => toast.error(Object.values(errors).join(' ') || 'Could not save changes.', { duration: Infinity }),
+    onFinish: () => { pending.value = false },
   })
 }
 
