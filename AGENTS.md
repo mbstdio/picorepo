@@ -15,3 +15,8 @@ Triage uses `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, 
 ### Domain docs
 
 This is a single-context repository. See `docs/agents/domain.md`.
+
+# Repository rules
+
+- Write the codebase in English, including identifiers, comments, and documentation.
+- Use Conventional Commits for commit messages: `type(scope): description`, with an optional scope.
