@@ -24,25 +24,27 @@ class ComposerController extends Controller
         return $this->cachedMetadata($repository, function () use ($repository, $repositorySlug) {
             $packageNames = [];
             $lastModified = null;
-            $packages = $repository->packages()->with(['versions' => fn ($versions) => $versions
-                ->select('id', 'package_id', 'disk', 'zip_path', 'updated_at')])->lazyById(100);
-            foreach ($packages as $package) {
-                $usableVersions = $package->versions->filter(fn (PackageVersion $version) => $version->hasUsableArchive());
-                if ($usableVersions->isNotEmpty()) {
-                    $packageNames[] = $package->fullName();
-                    $lastModified = max($lastModified, $usableVersions->max('updated_at'));
+            $versions = PackageVersion::query()
+                ->join('packages', 'packages.id', '=', 'package_versions.package_id')
+                ->where('packages.repository_id', $repository->id)
+                ->select('package_versions.id', 'package_id', 'disk', 'zip_path', 'package_versions.updated_at', 'packages.name as package_name')
+                ->lazyById(100, 'package_versions.id', 'id');
+            foreach ($versions as $version) {
+                if ($version->hasUsableArchive()) {
+                    $packageNames[$version->package_id] = strtolower($repository->name.'/'.$version->package_name);
+                    $lastModified = max($lastModified, $version->updated_at);
                 }
             }
+            ksort($packageNames);
 
             $metadata = [
                 'packages' => new \stdClass,
                 'metadata-url' => '/composer/'.$repositorySlug.'/p2/%package%.json',
-                'available-packages' => $packageNames,
+                'available-packages' => array_values($packageNames),
                 'info' => 'Add to composer.json repositories: '.json_encode($repository->composerConfig()),
             ];
 
             return response()->json($metadata)
-                ->setEtag(md5(json_encode($metadata)))
                 ->setLastModified($lastModified);
         });
     }
@@ -153,7 +155,6 @@ class ComposerController extends Controller
             ];
 
             return response()->json($metadata)
-                ->setEtag(md5(json_encode($metadata)))
                 ->setLastModified($package->versions->max('updated_at'));
         });
     }

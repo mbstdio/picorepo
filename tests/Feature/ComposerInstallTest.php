@@ -51,6 +51,7 @@ class ComposerInstallTest extends TestCase
             $this->waitForServer($port);
 
             file_put_contents($directory.'/composer.json', json_encode([
+                'config' => ['secure-http' => false], // The test server is loopback HTTP only.
                 'repositories' => [
                     ['packagist.org' => false],
                     ['type' => 'composer', 'url' => "http://127.0.0.1:{$port}/composer/{$repository->slug}"],

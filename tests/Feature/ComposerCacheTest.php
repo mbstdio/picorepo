@@ -37,6 +37,25 @@ class ComposerCacheTest extends TestCase
         }
     }
 
+    public function test_entry_point_scans_large_version_histories_in_bounded_batches(): void
+    {
+        $repository = $this->repository();
+        $package = $repository->packages()->create(['name' => 'demo']);
+        for ($v = 1; $v <= 251; $v++) {
+            $package->versions()->create(['version' => "1.0.$v", 'zip_path' => 'archive.zip', 'disk' => 'local']);
+        }
+        DB::enableQueryLog();
+        $this->get('/composer/acme/packages.json')->assertOk()->assertJsonPath('available-packages', ['acme/demo']);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $versionQueries = array_filter($queries, fn ($query) => str_contains($query['query'], 'package_versions'));
+        $this->assertCount(3, $versionQueries);
+        foreach ($versionQueries as $query) {
+            $this->assertStringContainsString('limit 100', $query['query']);
+        }
+    }
+
     public function test_package_and_version_writes_invalidate_every_composer_metadata_shape(): void
     {
         $repository = $this->repository();
